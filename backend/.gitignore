@@ -35,3 +35,14 @@ out/
 
 ### VS Code ###
 .vscode/
+
+# Uploads (user files)
+backend/uploads/
+uploads/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

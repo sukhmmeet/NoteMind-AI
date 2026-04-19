@@ -26,6 +26,8 @@ public class Note {
     @Lob
     private String summary;
 
+    private String imageUrl;
+
     @CreationTimestamp
     private LocalDateTime createdAt;
 

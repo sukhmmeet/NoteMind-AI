@@ -9,6 +9,7 @@ import com.dhaliwal.notemind.repository.NoteRepository;
 import com.dhaliwal.notemind.repository.TagRepository;
 import com.dhaliwal.notemind.service.NotesService;
 import lombok.AllArgsConstructor;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
@@ -58,21 +59,42 @@ public class NotesServiceImpl implements NotesService {
 
     @Override
     public List<NoteDto> getAllNotes() {
-        return List.of();
+
+        List<Note> notes = noteRepository.findAll(
+                Sort.by(Sort.Direction.DESC, "createdAt")
+        );
+
+        return notes.stream()
+                .map(noteMapper::toDto)
+                .toList();
     }
 
     @Override
     public NoteDto getNoteById(Long id) {
-        return null;
+        Note note = noteRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Not find note of this id:" + id));
+        return noteMapper.toDto(note);
     }
 
     @Override
     public NoteDto updateNote(Long id, NoteDto noteDto) {
-        return null;
+
+        Note existingNote = noteRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Note not found"));
+
+        existingNote.setTitle(noteDto.getTitle());
+        existingNote.setContent(noteDto.getContent());
+        existingNote.setSummary(noteDto.getSummary());
+
+        Note updated = noteRepository.save(existingNote);
+
+        return noteMapper.toDto(updated);
     }
 
     @Override
     public void deleteNote(Long id) {
-
+        if(!noteRepository.existsById(id)){
+            throw new IllegalArgumentException("Note not found");
+        }
+        noteRepository.deleteById(id);
     }
 }

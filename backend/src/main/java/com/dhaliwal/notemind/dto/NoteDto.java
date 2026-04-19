@@ -15,6 +15,7 @@ public class NoteDto {
     private String title;
     private String content;
     private String summary;
+    private String imageUrl;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private List<TagDto> tags;
