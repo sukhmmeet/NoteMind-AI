@@ -2,6 +2,7 @@ plugins {
 	java
 	id("org.springframework.boot") version "4.0.5"
 	id("io.spring.dependency-management") version "1.1.7"
+    kotlin("jvm")
 }
 
 group = "com.dhaliwal"
@@ -31,6 +32,10 @@ dependencies {
 	testCompileOnly("org.projectlombok:lombok")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 	testAnnotationProcessor("org.projectlombok:lombok")
+
+    // model mapper
+    implementation("org.modelmapper:modelmapper:3.2.2")
+    implementation(kotlin("stdlib-jdk8"))
 }
 
 tasks.withType<Test> {
