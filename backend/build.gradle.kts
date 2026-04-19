@@ -33,8 +33,9 @@ dependencies {
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 	testAnnotationProcessor("org.projectlombok:lombok")
 
-    // model mapper
-    implementation("org.modelmapper:modelmapper:3.2.2")
+    // mapstruct
+    implementation("org.mapstruct:mapstruct:1.5.5.Final")
+    annotationProcessor("org.mapstruct:mapstruct-processor:1.5.5.Final")
     implementation(kotlin("stdlib-jdk8"))
 }
 
