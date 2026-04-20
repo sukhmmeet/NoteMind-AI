@@ -7,10 +7,13 @@ import com.dhaliwal.notemind.entity.Tag;
 import com.dhaliwal.notemind.mapper.NoteMapper;
 import com.dhaliwal.notemind.repository.NoteRepository;
 import com.dhaliwal.notemind.repository.TagRepository;
+import com.dhaliwal.notemind.service.GeminiAIService;
+import com.dhaliwal.notemind.service.ImageManagerService;
 import com.dhaliwal.notemind.service.NotesService;
 import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.HashSet;
 import java.util.List;
@@ -21,20 +24,30 @@ public class NotesServiceImpl implements NotesService {
     private final NoteRepository noteRepository;
     private final NoteMapper noteMapper;
     private final TagRepository tagRepository;
+    private final GeminiAIService geminiAIService;
+    private final ImageManagerService imageManagerService;
 
-    public NotesServiceImpl(NoteRepository noteRepository, NoteMapper noteMapper, TagRepository tagRepository) {
+    public NotesServiceImpl(NoteRepository noteRepository, NoteMapper noteMapper, TagRepository tagRepository, GeminiAIService geminiAIService, ImageManagerService imageManagerService) {
         this.noteRepository = noteRepository;
         this.noteMapper = noteMapper;
         this.tagRepository = tagRepository;
+        this.geminiAIService = geminiAIService;
+        this.imageManagerService = imageManagerService;
     }
     @Override
-    public NoteDto createNote(NoteDto noteDto) {
+    public NoteDto createNote(NoteDto noteDto, MultipartFile image) {
+
+        String imageUrl = null;
+
+        if (image != null && !image.isEmpty()) {
+            imageUrl = imageManagerService.getUrlFromImage(image);
+        }
 
         Note note = new Note();
-
         note.setTitle(noteDto.getTitle());
         note.setContent(noteDto.getContent());
-        note.setSummary(noteDto.getSummary()); // it will goes under AI
+        note.setImageUrl(imageUrl);
+        note.setSummary(geminiAIService.getSummaryFromText(noteDto.getTitle(), note.getContent()));
 
         Set<Tag> tagEntities = new HashSet<>();
 
@@ -76,15 +89,20 @@ public class NotesServiceImpl implements NotesService {
     }
 
     @Override
-    public NoteDto updateNote(Long id, NoteDto noteDto) {
+    public NoteDto updateNote(Long id, NoteDto noteDto, MultipartFile image) {
 
         Note existingNote = noteRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Note not found"));
 
         existingNote.setTitle(noteDto.getTitle());
         existingNote.setContent(noteDto.getContent());
-        existingNote.setSummary(noteDto.getSummary());
-
+        existingNote.setSummary(geminiAIService.getSummaryFromText(noteDto.getTitle(), noteDto.getContent()));
+        if (image != null & !image.isEmpty()){
+            String url = imageManagerService.getUrlFromImage(image);
+            existingNote.setImageUrl(url);
+        }else{
+            existingNote.setImageUrl(noteDto.getImageUrl());
+        }
         Note updated = noteRepository.save(existingNote);
 
         return noteMapper.toDto(updated);

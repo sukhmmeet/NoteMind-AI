@@ -37,6 +37,9 @@ dependencies {
     implementation("org.mapstruct:mapstruct:1.5.5.Final")
     annotationProcessor("org.mapstruct:mapstruct-processor:1.5.5.Final")
     implementation(kotlin("stdlib-jdk8"))
+
+    // ai
+    implementation("com.google.genai:google-genai:1.0.0")
 }
 
 tasks.withType<Test> {

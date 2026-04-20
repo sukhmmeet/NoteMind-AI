@@ -2,26 +2,35 @@ package com.dhaliwal.notemind.controller;
 
 import com.dhaliwal.notemind.dto.NoteDto;
 import com.dhaliwal.notemind.service.NotesService;
-import lombok.AllArgsConstructor;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.io.File;
-import java.io.IOException;
 import java.util.List;
 
 @RestController
 @RequestMapping("/notes")
 public class NoteController {
-    public NoteController(NotesService notesService) {
+    private final NotesService notesService;
+    private final ObjectMapper objectMapper;
+
+    public NoteController(NotesService notesService, ObjectMapper objectMapper) {
         this.notesService = notesService;
+        this.objectMapper = objectMapper;
     }
 
-    private final NotesService notesService;
-    @PostMapping
-    public ResponseEntity<NoteDto> createNote(@RequestBody NoteDto noteDto) {
-        return ResponseEntity.ok(notesService.createNote(noteDto));
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> createNote(
+            @RequestPart("note") String noteJson,
+            @RequestPart(value = "image", required = false) MultipartFile image
+    ) throws Exception {
+
+        ObjectMapper mapper = new ObjectMapper();
+        NoteDto noteDto = objectMapper.readValue(noteJson, NoteDto.class);
+
+        NoteDto savedNoteDto = notesService.createNote(noteDto, image);
+        return ResponseEntity.ok(savedNoteDto);
     }
 
     @GetMapping
@@ -32,35 +41,24 @@ public class NoteController {
     public ResponseEntity<NoteDto> getNoteById(@PathVariable long id){
         return ResponseEntity.ok(notesService.getNoteById(id));
     }
-    @PutMapping("/{id}")
-    public ResponseEntity<NoteDto> updateNote(@RequestBody NoteDto noteDto, @PathVariable long id){
-        return ResponseEntity.ok(notesService.updateNote(id, noteDto));
+    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<NoteDto> updateNote(
+            @PathVariable long id,
+            @RequestPart("note") String noteJson,
+            @RequestPart(value = "image", required = false) MultipartFile image
+    ) throws Exception {
+
+        NoteDto noteDto = objectMapper.readValue(noteJson, NoteDto.class);
+        return ResponseEntity.ok(notesService.updateNote(id, noteDto, image));
     }
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteNote(@PathVariable long id){
         notesService.deleteNote(id);
         return ResponseEntity.noContent().build();
     }
-    @PostMapping("/upload-image")
-    public String uploadImage(@RequestParam MultipartFile file) {
+    @GetMapping("/test")
+    public ResponseEntity<String> testAI(){
 
-        String uploadPath = System.getProperty("user.dir") + "/uploads";
-
-        File uploadDir = new File(uploadPath);
-        if (!uploadDir.exists()) {
-            uploadDir.mkdirs();
-        }
-
-        String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
-
-        File destination = new File(uploadDir, fileName);
-
-        try {
-            file.transferTo(destination);
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to upload file", e);
-        }
-
-        return "http://localhost:8080/api/images/" + fileName;
+        return ResponseEntity.ok("");
     }
 }
