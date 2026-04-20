@@ -38,8 +38,11 @@ dependencies {
     annotationProcessor("org.mapstruct:mapstruct-processor:1.5.5.Final")
     implementation(kotlin("stdlib-jdk8"))
 
-    // ai
+    // Gen ai
     implementation("com.google.genai:google-genai:1.0.0")
+
+    // Cloudinary
+    implementation("com.cloudinary:cloudinary-http44:1.39.0")
 }
 
 tasks.withType<Test> {

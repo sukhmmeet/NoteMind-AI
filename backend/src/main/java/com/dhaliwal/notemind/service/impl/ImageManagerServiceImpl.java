@@ -1,32 +1,33 @@
 package com.dhaliwal.notemind.service.impl;
 
+import com.cloudinary.Cloudinary;
 import com.dhaliwal.notemind.service.ImageManagerService;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import java.io.File;
 import java.io.IOException;
+import java.util.Map;
 
 @Service
 public class ImageManagerServiceImpl implements ImageManagerService {
+    private final Cloudinary cloudinary;
+
+    public ImageManagerServiceImpl(Cloudinary cloudinary) {
+        this.cloudinary = cloudinary;
+    }
+
     @Override
     public String getUrlFromImage(MultipartFile file) {
-        String uploadPath = System.getProperty("user.dir") + "/uploads";
-
-        File uploadDir = new File(uploadPath);
-        if (!uploadDir.exists()) {
-            uploadDir.mkdirs();
-        }
-
-        String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
-
-        File destination = new File(uploadDir, fileName);
-
         try {
-            file.transferTo(destination);
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to upload file", e);
-        }
+            Map uploadResult = cloudinary.uploader().upload(
+                    file.getBytes(),
+                    Map.of("folder", "notes")
+            );
 
-        return "http://localhost:8080/api/images/" + fileName;
+            return uploadResult.get("secure_url").toString();
+
+        } catch (IOException e) {
+            throw new RuntimeException("Image upload failed", e);
+        }
     }
 }
