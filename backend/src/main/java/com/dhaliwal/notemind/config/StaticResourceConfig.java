@@ -16,10 +16,4 @@ public class StaticResourceConfig implements WebMvcConfigurer {
         registry.addResourceHandler("/images/**")
                 .addResourceLocations("file:uploads/");
     }
-    @Bean
-    public ObjectMapper objectMapper() {
-        return JsonMapper.builder()
-                .addModule(new JavaTimeModule()) // handles LocalDateTime
-                .build();
-    }
 }
