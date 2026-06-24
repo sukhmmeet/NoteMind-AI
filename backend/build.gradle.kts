@@ -32,6 +32,14 @@ dependencies {
 	testCompileOnly("org.projectlombok:lombok")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 	testAnnotationProcessor("org.projectlombok:lombok")
+	implementation("org.springframework.boot:spring-boot-starter-security")
+	implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
+	testImplementation("org.springframework.boot:spring-boot-starter-security-test")
+
+	// JWT (java web token)
+	implementation("io.jsonwebtoken:jjwt:0.13.0")
+	runtimeOnly("io.jsonwebtoken:jjwt-impl:0.13.0")
+	runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.13.0")
 
     // mapstruct
     implementation("org.mapstruct:mapstruct:1.5.5.Final")

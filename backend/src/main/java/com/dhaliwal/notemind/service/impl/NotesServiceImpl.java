@@ -1,15 +1,19 @@
 package com.dhaliwal.notemind.service.impl;
 
+import com.dhaliwal.notemind.dto.AINoteResponse;
 import com.dhaliwal.notemind.dto.NoteDto;
-import com.dhaliwal.notemind.dto.TagDto;
 import com.dhaliwal.notemind.entity.Note;
 import com.dhaliwal.notemind.entity.Tag;
+import com.dhaliwal.notemind.entity.User;
 import com.dhaliwal.notemind.mapper.NoteMapper;
 import com.dhaliwal.notemind.repository.NoteRepository;
 import com.dhaliwal.notemind.repository.TagRepository;
+import com.dhaliwal.notemind.security.UserRepository;
+import com.dhaliwal.notemind.security.util.SecurityUtils;
 import com.dhaliwal.notemind.service.AIService;
 import com.dhaliwal.notemind.service.ImageManagerService;
 import com.dhaliwal.notemind.service.NotesService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -19,43 +23,42 @@ import java.util.List;
 import java.util.Set;
 
 @Service
+@RequiredArgsConstructor
 public class NotesServiceImpl implements NotesService {
     private final NoteRepository noteRepository;
     private final NoteMapper noteMapper;
     private final TagRepository tagRepository;
-    private final AIService AIService;
+    private final AIService aiService;
     private final ImageManagerService imageManagerService;
+    private final UserRepository  userRepository;
+    private final SecurityUtils  securityUtils;
 
-    public NotesServiceImpl(NoteRepository noteRepository, NoteMapper noteMapper, TagRepository tagRepository, AIService AIService, ImageManagerService imageManagerService) {
-        this.noteRepository = noteRepository;
-        this.noteMapper = noteMapper;
-        this.tagRepository = tagRepository;
-        this.AIService = AIService;
-        this.imageManagerService = imageManagerService;
-    }
     @Override
     public NoteDto createNote(NoteDto noteDto, MultipartFile image) {
+        User user = userRepository.findById(securityUtils.getUserId()).orElseThrow(() -> new RuntimeException("User not found"));
 
         String imageUrl = null;
 
         if (image != null && !image.isEmpty()) {
-            imageUrl = imageManagerService.getUrlFromImage(image);
+            imageUrl = imageManagerService.uploadAndGetUrl(image);
         }
 
         Note note = new Note();
+        note.setUser(user);
         note.setTitle(noteDto.getTitle());
         note.setContent(noteDto.getContent());
         note.setImageUrl(imageUrl);
-        note.setSummary(AIService.getSummary(note.getTitle(), note.getContent(), imageUrl));
+        AINoteResponse aiResponse = aiService.getAIResponse(note.getTitle(), note.getContent(), imageUrl);
+        note.setSummary(aiResponse.getSummary());
 
         Set<Tag> tagEntities = new HashSet<>();
 
-        for (TagDto tagDto : noteDto.getTags()) {
+        for (String tagName : aiResponse.getTags()) {
 
-            Tag tag = tagRepository.findByName(tagDto.getName())
+            Tag tag = tagRepository.findByName(tagName)
                     .orElseGet(() -> {
                         Tag newTag = new Tag();
-                        newTag.setName(tagDto.getName());
+                        newTag.setName(tagName);
                         return newTag;
                     });
 
@@ -72,8 +75,8 @@ public class NotesServiceImpl implements NotesService {
     @Override
     public List<NoteDto> getAllNotes() {
 
-        List<Note> notes = noteRepository.findAll(
-                Sort.by(Sort.Direction.DESC, "createdAt")
+        List<Note> notes = noteRepository.findAllByUserId(
+                securityUtils.getUserId()
         );
 
         return notes.stream()
@@ -95,13 +98,14 @@ public class NotesServiceImpl implements NotesService {
 
         existingNote.setTitle(noteDto.getTitle());
         existingNote.setContent(noteDto.getContent());
-        existingNote.setSummary(AIService.getSummaryFromTextGenAI(noteDto.getTitle(), noteDto.getContent()));
         if (image != null & !image.isEmpty()){
-            String url = imageManagerService.getUrlFromImage(image);
+            String url = imageManagerService.uploadAndGetUrl(image);
             existingNote.setImageUrl(url);
         }else{
             existingNote.setImageUrl(noteDto.getImageUrl());
         }
+        AINoteResponse aiResponse = aiService.getAIResponse(noteDto.getTitle(), noteDto.getContent(),noteDto.getImageUrl());
+        existingNote.setSummary(aiResponse.getSummary());
         Note updated = noteRepository.save(existingNote);
 
         return noteMapper.toDto(updated);

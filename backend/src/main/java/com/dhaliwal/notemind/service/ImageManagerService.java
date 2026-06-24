@@ -5,5 +5,5 @@ import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public interface ImageManagerService {
-    String getUrlFromImage(MultipartFile file);
+    String uploadAndGetUrl(MultipartFile file);
 }

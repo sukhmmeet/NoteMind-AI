@@ -17,7 +17,7 @@ public class ImageManagerServiceImpl implements ImageManagerService {
     }
 
     @Override
-    public String getUrlFromImage(MultipartFile file) {
+    public String uploadAndGetUrl(MultipartFile file) {
         try {
             Map uploadResult = cloudinary.uploader().upload(
                     file.getBytes(),

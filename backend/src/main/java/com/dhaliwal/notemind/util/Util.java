@@ -9,23 +9,34 @@ import java.util.Map;
 
 @Configuration
 public class Util {
-    public String getPrompt(String title, String content){
-        return "You are an assistant that summarizes notes.\n" +
-                "Given the following note:\n\n" +
-                "Title: " + title + "\n" +
-                "Content: " + content + "\n\n" +
-                "Instructions:\n" +
-                "- Generate a concise summary in 2-3 sentences.\n" +
-                "- Capture the key idea and important details.\n" +
-                "- If an image is provided, use it only if it adds meaningful context.\n" +
-                "- Do not describe the image unless it is relevant.\n" +
-                "- Do not repeat the title.\n" +
-                "- Keep it clear and simple.\n\n" +
-                "Summary:";
+    public String getPrompt(String title, String content) {
+        return """
+            You are an assistant that summarizes notes.
+
+            Given the following note:
+
+            Title: %s
+            Content: %s
+
+            Instructions:
+            - Generate a concise summary in 2-3 sentences.
+            - Capture the key idea and important details.
+            - Generate 3-5 relevant tags.
+            - Tags should be short keywords.
+            - Do not repeat the title.
+            - Keep everything clear and simple.
+
+            Return ONLY valid JSON in this format:
+            {
+              "summary": "your summary here",
+              "tags": ["tag1", "tag2", "tag3"]
+            }
+            """.formatted(title, content);
     }
     public String chooseModel(String imageUrl) {
         if (imageUrl != null && !imageUrl.isEmpty()) {
-            return "nvidia/nemotron-nano-12b-v2-vl:free";
+//            return "nvidia/nemotron-nano-12b-v2-vl:free";
+            return "nex-agi/nex-n2-pro:free";
         } else {
             return "nvidia/nemotron-3-super-120b-a12b:free";
         }

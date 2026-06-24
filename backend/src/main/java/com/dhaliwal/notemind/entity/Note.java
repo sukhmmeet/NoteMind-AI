@@ -18,12 +18,16 @@ public class Note {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
+
     private String title;
 
-    @Lob
+    @Column(columnDefinition = "TEXT")
     private String content;
 
-    @Lob
+    @Column(columnDefinition = "TEXT")
     private String summary;
 
     private String imageUrl;

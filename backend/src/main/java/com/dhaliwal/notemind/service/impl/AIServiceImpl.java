@@ -1,8 +1,8 @@
 package com.dhaliwal.notemind.service.impl;
 
+import com.dhaliwal.notemind.dto.AINoteResponse;
 import com.dhaliwal.notemind.service.AIService;
 import com.dhaliwal.notemind.util.Util;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.genai.Client;
@@ -12,7 +12,6 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.HashMap;
 import java.util.Map;
 
 @Service
@@ -47,7 +46,7 @@ public class AIServiceImpl implements AIService {
         return response.text();
     }
     @Override
-    public String getSummary(String title, String content, String imageUrl) {
+    public AINoteResponse getAIResponse(String title, String content, String imageUrl) {
 
         String prompt = util.getPrompt(title, content);
 
@@ -81,15 +80,19 @@ public class AIServiceImpl implements AIService {
                 throw new RuntimeException("Invalid AI response: no choices");
             }
 
-            String summary = choices.get(0)
+            String summaryResponse = choices.get(0)
                     .path("message")
                     .path("content")
                     .asText("");
 
             // Clean weird characters
-            summary = summary.replaceAll("[^\\x00-\\x7F]", "").trim();
+            summaryResponse = summaryResponse.replaceAll("[^\\x00-\\x7F]", "").trim();
+            AINoteResponse aiNoteResponse = objectMapper.readValue(
+                    summaryResponse,
+                    AINoteResponse.class
+            );
 
-            return summary;
+            return aiNoteResponse;
 
         } catch (Exception e) {
             throw new RuntimeException("Failed to get summary from AI", e);
