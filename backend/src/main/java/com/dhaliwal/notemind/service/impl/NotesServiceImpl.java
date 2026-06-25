@@ -13,17 +13,22 @@ import com.dhaliwal.notemind.security.util.SecurityUtils;
 import com.dhaliwal.notemind.service.AIService;
 import com.dhaliwal.notemind.service.ImageManagerService;
 import com.dhaliwal.notemind.service.NotesService;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class NotesServiceImpl implements NotesService {
     private final NoteRepository noteRepository;
     private final NoteMapper noteMapper;
@@ -35,10 +40,13 @@ public class NotesServiceImpl implements NotesService {
 
     @Override
     public NoteDto createNote(NoteDto noteDto, MultipartFile image) {
-        User user = userRepository.findById(securityUtils.getUserId()).orElseThrow(() -> new RuntimeException("User not found"));
+
+        Long userId = securityUtils.getUserId();
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
         String imageUrl = null;
-
         if (image != null && !image.isEmpty()) {
             imageUrl = imageManagerService.uploadAndGetUrl(image);
         }
@@ -48,28 +56,54 @@ public class NotesServiceImpl implements NotesService {
         note.setTitle(noteDto.getTitle());
         note.setContent(noteDto.getContent());
         note.setImageUrl(imageUrl);
-        AINoteResponse aiResponse = aiService.getAIResponse(note.getTitle(), note.getContent(), imageUrl);
-        note.setSummary(aiResponse.getSummary());
 
-        Set<Tag> tagEntities = new HashSet<>();
+        Note savedNote = noteRepository.save(note);
 
-        for (String tagName : aiResponse.getTags()) {
+        try {
+            AINoteResponse aiResponse =
+                    aiService.getAIResponse(savedNote.getTitle(),
+                            savedNote.getContent(),
+                            imageUrl);
 
-            Tag tag = tagRepository.findByName(tagName)
-                    .orElseGet(() -> {
-                        Tag newTag = new Tag();
-                        newTag.setName(tagName);
-                        return newTag;
-                    });
+            if (aiResponse != null) {
 
-            tagEntities.add(tag);
+                savedNote.setSummary(aiResponse.getSummary());
+
+                // 4. Optimize tag fetching (avoid N queries)
+                Set<String> tagNames = new HashSet<>(aiResponse.getTags());
+
+                List<Tag> existingTags = tagRepository.findByNameIn(tagNames);
+
+                Map<String, Tag> tagMap = existingTags.stream()
+                        .collect(Collectors.toMap(Tag::getName, t -> t));
+
+                Set<Tag> finalTags = new HashSet<>();
+
+                for (String tagName : tagNames) {
+
+                    Tag tag = tagMap.get(tagName);
+
+                    if (tag == null) {
+                        tag = new Tag();
+                        tag.setName(tagName);
+                        tag = tagRepository.save(tag); // ensure persistence
+                    }
+
+                    finalTags.add(tag);
+                }
+
+                savedNote.setTags(finalTags);
+            }
+
+        } catch (Exception e) {
+            log.error("AI enrichment failed for noteId={}", savedNote.getId(), e);
+
+            savedNote.setSummary("Summary is unavailable at this moment");
         }
 
-        note.setTags(tagEntities);
+        Note finalNote = noteRepository.save(savedNote);
 
-        Note saved = noteRepository.save(note);
-
-        return noteMapper.toDto(saved);
+        return noteMapper.toDto(finalNote);
     }
 
     @Override
