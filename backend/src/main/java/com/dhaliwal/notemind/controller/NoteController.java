@@ -52,9 +52,9 @@ public class NoteController {
         return ResponseEntity.ok(notesService.updateNote(id, noteDto, image));
     }
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteNote(@PathVariable long id){
+    public ResponseEntity<String> deleteNote(@PathVariable long id){
         notesService.deleteNote(id);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok("Deleted");
     }
     @GetMapping("/test")
     public ResponseEntity<String> testAI(){

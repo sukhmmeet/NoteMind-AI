@@ -38,6 +38,14 @@ public class Note {
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 
+    @Column(
+            name = "search_vector",
+            columnDefinition = "tsvector",
+            insertable = false,
+            updatable = false
+    )
+    private String searchVector;
+
     @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinTable(
             name = "note_tags",
