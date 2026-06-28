@@ -1,15 +1,18 @@
 # 🧠 NoteMind AI
 
-AI-powered notes application built with **Spring Boot + PostgreSQL**.
+AI-powered notes application built with **Spring Boot + PostgreSQL** with a planned Android client.
+
+NoteMind AI focuses on building a modern notes platform with AI-powered features, secure authentication, intelligent search, and scalable backend architecture.
 
 ---
 
 # 🚀 Features
 
 ## 🔐 Authentication
+
 - JWT based authentication
 - Secure password encryption using BCrypt
-- Stateless Spring Security
+- Stateless Spring Security architecture
 - Multi-user support
 - User-specific private notes
 
@@ -20,7 +23,7 @@ AI-powered notes application built with **Spring Boot + PostgreSQL**.
 - Create notes
 - Update notes
 - Delete notes
-- Add title, content
+- Add title and content
 - Upload note images
 - Store images using Cloudinary
 
@@ -30,22 +33,7 @@ AI-powered notes application built with **Spring Boot + PostgreSQL**.
 
 ### Automatic Summary Generation
 
-Users can write long notes and NoteMind AI can generate summaries automatically.
-
-Example:
-
-Input:
-
-```
-Spring Boot is a framework used to build Java applications.
-It provides auto configuration, embedded servers and easy API development.
-```
-
-AI generates:
-
-```
-Spring Boot helps developers build Java backend applications faster.
-```
+NoteMind AI uses external AI services to generate summaries from long notes.
 
 Powered by:
 
@@ -56,18 +44,11 @@ Powered by:
 
 ## 🖼️ Image Support
 
-Notes support images.
+Notes support image attachments with cloud storage.
 
-Features:
+Flow:
 
-- Image upload
-- Cloud storage
-- Image URL stored with notes
-- Optimized media handling
-
-Storage:
-
-```
+```text
 Application
      |
      v
@@ -80,35 +61,48 @@ Image URL
 PostgreSQL
 ```
 
+Features:
+
+- Image upload
+- Cloud storage
+- URL persistence
+- Media handling
+
 ---
 
 ## 🔎 Full Text Search
 
-Implemented using PostgreSQL:
+Implemented using PostgreSQL Full Text Search.
 
-- `tsvector`
-- `tsquery`
+Uses:
+
+- tsvector
+- tsquery
 - GIN indexing
 
-Searches:
+Search works across:
 
 - Title
 - Content
-- Summary
+- AI generated summaries
 
+---
 
-Example:
+# 🏗️ Architecture
 
-```
-Spring Boot Security
-```
-
-Stored internally:
-
-```
-'spring'
-'boot'
-'secur'
+```text
+Client
+  |
+  v
+Spring Boot REST API
+  |
+  +---- Spring Security (JWT)
+  |
+  +---- AI Service
+  |
+  +---- Cloudinary Storage
+  |
+  +---- PostgreSQL Database
 ```
 
 ---
@@ -128,7 +122,7 @@ Stored internally:
 - PostgreSQL
 - PostgreSQL Full Text Search
 
-## AI
+## AI Integration
 
 - Google AI API
 - OpenRouter API
@@ -141,19 +135,22 @@ Stored internally:
 
 - JWT
 
-## Build
+## Build Tool
 
 - Gradle
 
+## Android Client (Planned)
+
+- Kotlin
+- Jetpack Compose
+
 ---
 
-## ⚙️ Required Configuration
+# ⚙️ Configuration
 
-Before running the project, configure these environment variables:
+Before running the project, configure these environment variables.
 
-### Database
-
-PostgreSQL is required.
+## Database
 
 ```
 DB_URL
@@ -171,27 +168,15 @@ DB_PASSWORD=your_password
 
 ---
 
-### JWT Authentication
-
-Used for generating and validating user tokens.
+## JWT
 
 ```
 JWT_SECRET_KEY
 ```
 
-Example:
-
-```
-JWT_SECRET_KEY=your_long_secret_key
-```
-
 ---
 
-### AI Configuration
-
-NoteMind AI uses AI services for automatic note summarization.
-
-Required:
+## AI Configuration
 
 ```
 GOOGLE_API_KEY
@@ -200,11 +185,7 @@ OPENROUTER_API_KEY
 
 ---
 
-### Image Storage
-
-Images are stored using Cloudinary.
-
-Required:
+## Cloudinary
 
 ```
 CLOUD_NAME_CLOUDINARY
@@ -214,28 +195,7 @@ CLOUD_API_SECRET_CLOUDINARY
 
 ---
 
-## Environment Setup Example
-
-Create environment variables:
-
-```
-DB_URL=jdbc:postgresql://localhost:5432/notemind_ai
-DB_USERNAME=postgres
-DB_PASSWORD=password
-
-JWT_SECRET_KEY=your_secret
-
-GOOGLE_API_KEY=your_key
-OPENROUTER_API_KEY=your_key
-
-CLOUD_NAME_CLOUDINARY=your_cloud_name
-CLOUD_API_KEY_CLOUDINARY=your_api_key
-CLOUD_API_SECRET_CLOUDINARY=your_api_secret
-```
-
----
-
-## Run Application
+# ▶️ Run Application
 
 Using Gradle:
 
@@ -245,60 +205,21 @@ Using Gradle:
 
 Application starts at:
 
-```
+```text
 http://localhost:8080/api/v1
-```
-
----
-
-# 🏗️ Architecture
-
-```
-Client
-  |
-  v
-Spring Boot API
-  |
-  +---- Security (JWT)
-  |
-  +---- AI Service
-  |
-  +---- Cloudinary
-  |
-  +---- PostgreSQL
-```
-
----
-
-# 🔍 Search Architecture
-
-```
-Create Note
-     |
-     v
-PostgreSQL Trigger
-     |
-     v
-Generate tsvector
-     |
-     v
-GIN Index
-     |
-     v
-Fast Search
 ```
 
 ---
 
 # 🔮 Future Improvements
 
+- Android application using Kotlin and Jetpack Compose
 - AI chat with notes
 - Voice notes
 - Markdown editor
 - Note sharing
 - Real-time collaboration
 - Redis caching
-- Mobile application
 - Elasticsearch integration
 
 ---
@@ -311,4 +232,4 @@ CSE Student
 
 ---
 
-⭐ Built with Spring Boot, PostgreSQL
+⭐ Built with Java, Spring Boot, PostgreSQL & AI
