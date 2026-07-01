@@ -94,7 +94,6 @@ public class NotesServiceImpl implements NotesService {
 
                 savedNote.setTags(finalTags);
             }
-
         } catch (Exception e) {
             log.error("AI enrichment failed for noteId={}", savedNote.getId(), e);
 
