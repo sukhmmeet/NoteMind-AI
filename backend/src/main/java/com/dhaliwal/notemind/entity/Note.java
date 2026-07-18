@@ -1,5 +1,6 @@
 package com.dhaliwal.notemind.entity;
 
+import com.dhaliwal.notemind.entity.type.SummaryType;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -29,6 +30,9 @@ public class Note {
 
     @Column(columnDefinition = "TEXT")
     private String summary;
+
+    @Enumerated(EnumType.STRING)
+    private SummaryType summaryType = SummaryType.SHORT;
 
     private String imageUrl;
 

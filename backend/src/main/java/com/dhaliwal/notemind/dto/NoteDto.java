@@ -1,5 +1,6 @@
 package com.dhaliwal.notemind.dto;
 
+import com.dhaliwal.notemind.entity.type.SummaryType;
 import lombok.*;
 
 import java.io.Serializable;
@@ -17,6 +18,7 @@ public class NoteDto implements Serializable {
     private String title;
     private String content;
     private String summary;
+    private SummaryType summaryType;
     private String imageUrl;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

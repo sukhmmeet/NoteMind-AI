@@ -1,4 +1,4 @@
-package com.dhaliwal.notemind.dto;
+package com.dhaliwal.notemind.dto.folder.response;
 
 import lombok.*;
 

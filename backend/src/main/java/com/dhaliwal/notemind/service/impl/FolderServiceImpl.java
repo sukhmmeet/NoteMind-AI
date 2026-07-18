@@ -1,7 +1,7 @@
 package com.dhaliwal.notemind.service.impl;
 
-import com.dhaliwal.notemind.dto.FolderDto;
-import com.dhaliwal.notemind.dto.FolderDtoWithoutNotes;
+import com.dhaliwal.notemind.dto.folder.response.FolderDto;
+import com.dhaliwal.notemind.dto.folder.response.FolderDtoWithoutNotes;
 import com.dhaliwal.notemind.dto.folder.request.FolderRequestDto;
 import com.dhaliwal.notemind.entity.Folder;
 import com.dhaliwal.notemind.entity.Note;

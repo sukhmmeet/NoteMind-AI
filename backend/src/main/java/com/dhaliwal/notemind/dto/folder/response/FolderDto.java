@@ -1,5 +1,6 @@
-package com.dhaliwal.notemind.dto;
+package com.dhaliwal.notemind.dto.folder.response;
 
+import com.dhaliwal.notemind.dto.NoteDto;
 import lombok.*;
 import java.util.ArrayList;
 import java.util.List;

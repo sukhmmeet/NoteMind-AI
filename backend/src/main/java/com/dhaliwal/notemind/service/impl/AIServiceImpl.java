@@ -1,6 +1,7 @@
 package com.dhaliwal.notemind.service.impl;
 
 import com.dhaliwal.notemind.dto.AINoteResponse;
+import com.dhaliwal.notemind.entity.type.SummaryType;
 import com.dhaliwal.notemind.service.AIService;
 import com.dhaliwal.notemind.util.Util;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -47,8 +48,12 @@ public class AIServiceImpl implements AIService {
     }
     @Override
     public AINoteResponse getAIResponse(String title, String content, String imageUrl) {
+        return getAIResponse(title, content, imageUrl, SummaryType.SHORT);
+    }
 
-        String prompt = util.getPrompt(title, content);
+    @Override
+    public AINoteResponse getAIResponse(String title, String content, String imageUrl, SummaryType summaryType) {
+        String prompt = util.getPrompt(title, content, summaryType);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(openRouterApiKey);

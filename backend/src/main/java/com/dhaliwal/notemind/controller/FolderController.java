@@ -1,14 +1,11 @@
 package com.dhaliwal.notemind.controller;
 
-import com.dhaliwal.notemind.dto.FolderDto;
-import com.dhaliwal.notemind.dto.FolderDtoWithoutNotes;
+import com.dhaliwal.notemind.dto.folder.response.FolderDtoWithoutNotes;
 import com.dhaliwal.notemind.dto.folder.request.FolderRequestDto;
 import com.dhaliwal.notemind.service.FolderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/folder")

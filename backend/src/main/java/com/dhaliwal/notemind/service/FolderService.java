@@ -1,7 +1,7 @@
 package com.dhaliwal.notemind.service;
 
-import com.dhaliwal.notemind.dto.FolderDto;
-import com.dhaliwal.notemind.dto.FolderDtoWithoutNotes;
+import com.dhaliwal.notemind.dto.folder.response.FolderDto;
+import com.dhaliwal.notemind.dto.folder.response.FolderDtoWithoutNotes;
 import com.dhaliwal.notemind.dto.folder.request.FolderRequestDto;
 import org.springframework.stereotype.Service;
 
