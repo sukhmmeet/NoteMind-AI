@@ -18,5 +18,11 @@ public interface NotesService {
     NoteDto updateNote(Long id, NoteDto noteDto, MultipartFile image);
 
     void deleteNote(Long id);
+
+    List<NoteDto> searchNotes(String searchTerm);
+
+    NoteDto moveToFolder(Long noteId, Long folderId);
+    NoteDto removeFromFolder(Long noteId);
+
 }
 

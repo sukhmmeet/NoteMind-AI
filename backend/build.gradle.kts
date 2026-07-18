@@ -35,6 +35,9 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-security")
 	implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
 	testImplementation("org.springframework.boot:spring-boot-starter-security-test")
+	testImplementation("org.springframework.security:spring-security-test")
+	testImplementation("org.springframework.boot:spring-boot-starter-test")
+
 
 	// JWT (java web token)
 	implementation("io.jsonwebtoken:jjwt:0.13.0")
@@ -51,6 +54,16 @@ dependencies {
 
     // Cloudinary
     implementation("com.cloudinary:cloudinary-http44:1.39.0")
+
+	// redis
+    implementation("org.springframework.boot:spring-boot-starter-cache")
+	implementation("org.springframework.boot:spring-boot-starter-data-redis")
+
+	implementation(platform("org.testcontainers:testcontainers-bom:1.19.8"))
+	testImplementation("org.testcontainers:postgresql")
+	testImplementation("org.testcontainers:junit-jupiter")
+	testImplementation("org.springframework.boot:spring-boot-testcontainers")
+
 }
 
 tasks.withType<Test> {

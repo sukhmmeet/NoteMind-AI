@@ -2,10 +2,12 @@ package com.dhaliwal.notemind.service.impl;
 
 import com.dhaliwal.notemind.dto.AINoteResponse;
 import com.dhaliwal.notemind.dto.NoteDto;
+import com.dhaliwal.notemind.entity.Folder;
 import com.dhaliwal.notemind.entity.Note;
 import com.dhaliwal.notemind.entity.Tag;
 import com.dhaliwal.notemind.entity.User;
 import com.dhaliwal.notemind.mapper.NoteMapper;
+import com.dhaliwal.notemind.repository.FolderRepository;
 import com.dhaliwal.notemind.repository.NoteRepository;
 import com.dhaliwal.notemind.repository.TagRepository;
 import com.dhaliwal.notemind.security.UserRepository;
@@ -16,20 +18,21 @@ import com.dhaliwal.notemind.service.NotesService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class NotesServiceImpl implements NotesService {
+    private final FolderRepository folderRepository;
     private final NoteRepository noteRepository;
     private final NoteMapper noteMapper;
     private final TagRepository tagRepository;
@@ -37,8 +40,10 @@ public class NotesServiceImpl implements NotesService {
     private final ImageManagerService imageManagerService;
     private final UserRepository  userRepository;
     private final SecurityUtils  securityUtils;
+    private final String Cache_name = "notes";
 
     @Override
+    @CachePut(cacheNames = Cache_name, key = "#result.id")
     public NoteDto createNote(NoteDto noteDto, MultipartFile image) {
 
         Long userId = securityUtils.getUserId();
@@ -118,12 +123,14 @@ public class NotesServiceImpl implements NotesService {
     }
 
     @Override
+    @Cacheable(cacheNames = Cache_name, key = "#id")
     public NoteDto getNoteById(Long id) {
         Note note = noteRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Not find note of this id:" + id));
         return noteMapper.toDto(note);
     }
 
     @Override
+    @CachePut(cacheNames = Cache_name, key = "#id")
     public NoteDto updateNote(Long id, NoteDto noteDto, MultipartFile image) {
 
         Note existingNote = noteRepository.findById(id)
@@ -131,7 +138,7 @@ public class NotesServiceImpl implements NotesService {
 
         existingNote.setTitle(noteDto.getTitle());
         existingNote.setContent(noteDto.getContent());
-        if (image != null & !image.isEmpty()){
+        if (image != null && !image.isEmpty()){
             String url = imageManagerService.uploadAndGetUrl(image);
             existingNote.setImageUrl(url);
         }else{
@@ -145,10 +152,50 @@ public class NotesServiceImpl implements NotesService {
     }
 
     @Override
+    @CacheEvict(cacheNames =  Cache_name, key = "#id")
     public void deleteNote(Long id) {
         if(!noteRepository.existsById(id)){
             throw new IllegalArgumentException("Note not found");
         }
         noteRepository.deleteById(id);
+    }
+
+    @Override
+    public List<NoteDto> searchNotes(String searchTerm) {
+        Long userId = securityUtils.getUserId();
+        if(userId == null){
+            throw new IllegalArgumentException("User not login");
+        }
+        if(Objects.equals(searchTerm, "") ||  searchTerm == null){
+            throw new IllegalArgumentException("Search term is empty");
+        }
+        List<Note> notes = noteRepository.searchNotes(userId, searchTerm);
+        return notes.stream().map(noteMapper::toDto).toList();
+    }
+
+    @Override
+    @Transactional
+    public NoteDto moveToFolder(Long noteId, Long folderId) {
+        Note note = noteRepository.findById(noteId).orElseThrow(() -> new IllegalArgumentException("Note not found"));
+        Folder folder = folderRepository.findById(folderId).orElseThrow(() -> new IllegalArgumentException("Folder not found"));
+        User user =  userRepository.findById(securityUtils.getUserId()).orElseThrow(() -> new IllegalArgumentException("User not found"));
+        if(!note.getUser().equals(user) || !folder.getUser().equals(user)){
+            throw new IllegalArgumentException("Unauthorized move");
+        }
+        note.setFolder(folder);
+        noteRepository.save(note);
+        return noteMapper.toDto(note);
+    }
+
+    @Override
+    @Transactional
+    public NoteDto removeFromFolder(Long noteId) {
+        Note note = noteRepository.findById(noteId).orElseThrow(() -> new IllegalArgumentException("Note not found"));
+        User user =  userRepository.findById(securityUtils.getUserId()).orElseThrow(() -> new IllegalArgumentException("User not found"));
+        if(!note.getUser().equals(user)){
+            throw new IllegalArgumentException("Unauthorized move");
+        }
+        note.setFolder(null);
+        return noteMapper.toDto(noteRepository.save(note));
     }
 }

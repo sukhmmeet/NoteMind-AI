@@ -61,4 +61,8 @@ public class NoteController {
 
         return ResponseEntity.ok("");
     }
+    @GetMapping("/search")
+    public List<NoteDto> search(@RequestParam String query) {
+        return notesService.searchNotes(query);
+    }
 }
