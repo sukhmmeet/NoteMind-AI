@@ -6,6 +6,7 @@ import com.dhaliwal.notemind.entity.Folder;
 import com.dhaliwal.notemind.entity.Note;
 import com.dhaliwal.notemind.entity.Tag;
 import com.dhaliwal.notemind.entity.User;
+import com.dhaliwal.notemind.entity.type.SummaryType;
 import com.dhaliwal.notemind.mapper.NoteMapper;
 import com.dhaliwal.notemind.repository.FolderRepository;
 import com.dhaliwal.notemind.repository.NoteRepository;
@@ -16,6 +17,8 @@ import com.dhaliwal.notemind.service.AIService;
 import com.dhaliwal.notemind.service.ImageManagerService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -144,8 +147,12 @@ class NotesServiceImplTest {
         when(noteRepository.save(any(Note.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        when(aiService.getAIResponse(anyString(), anyString(), isNull()))
-                .thenReturn(createAIResponse());
+        when(aiService.getAIResponse(
+                anyString(),
+                anyString(),
+                isNull(),
+                eq(SummaryType.SHORT)
+        )).thenReturn(createAIResponse());
 
         when(tagRepository.findByNameIn(anySet()))
                 .thenReturn(Collections.emptyList());
@@ -161,7 +168,12 @@ class NotesServiceImplTest {
         assertNotNull(result);
 
         verify(noteRepository, times(2)).save(any(Note.class));
-        verify(aiService).getAIResponse(anyString(), anyString(), isNull());
+        verify(aiService).getAIResponse(
+                anyString(),
+                anyString(),
+                isNull(),
+                eq(SummaryType.SHORT)
+        );
         verify(noteMapper).toDto(any(Note.class));
     }
     @Test
@@ -178,8 +190,12 @@ class NotesServiceImplTest {
         when(noteRepository.save(any(Note.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        when(aiService.getAIResponse(anyString(), anyString(), anyString()))
-                .thenReturn(createAIResponse());
+        when(aiService.getAIResponse(
+                anyString(),
+                anyString(),
+                anyString(),
+                eq(SummaryType.SHORT)
+        )).thenReturn(createAIResponse());
 
         when(tagRepository.findByNameIn(anySet()))
                 .thenReturn(Collections.emptyList());
@@ -195,7 +211,12 @@ class NotesServiceImplTest {
         assertNotNull(result);
 
         verify(imageManagerService).uploadAndGetUrl(image);
-        verify(aiService).getAIResponse(anyString(), anyString(), eq("http://image-url"));
+        verify(aiService).getAIResponse(
+                anyString(),
+                anyString(),
+                eq("http://image-url"),
+                eq(SummaryType.SHORT)
+        );
     }
     @Test
     void createNote_ShouldHandleAiFailure() {
@@ -254,8 +275,12 @@ class NotesServiceImplTest {
         when(noteRepository.save(any(Note.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        when(aiService.getAIResponse(anyString(), anyString(), any()))
-                .thenReturn(createAIResponse());
+        when(aiService.getAIResponse(
+                anyString(),
+                anyString(),
+                any(),
+                eq(SummaryType.SHORT)
+        )).thenReturn(createAIResponse());
 
         when(tagRepository.findByNameIn(anySet()))
                 .thenReturn(Collections.emptyList());
@@ -269,6 +294,51 @@ class NotesServiceImplTest {
         notesService.createNote(noteDto, null);
 
         verify(tagRepository, times(2)).save(any(Tag.class));
+    }
+    @ParameterizedTest
+    @EnumSource(value = SummaryType.class, names = {
+            "SHORT",
+            "DETAILED",
+            "BULLET_POINTS"
+    })
+    void shouldCreateNoteWithDifferentSummaryTypes(SummaryType summaryType) {
+
+        when(securityUtils.getUserId()).thenReturn(1L);
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
+        when(noteRepository.save(any(Note.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        when(aiService.getAIResponse(
+                anyString(),
+                anyString(),
+                isNull(),
+                eq(summaryType)
+        )).thenReturn(createAIResponse());
+
+        when(tagRepository.findByNameIn(anySet()))
+                .thenReturn(Collections.emptyList());
+
+        when(tagRepository.save(any(Tag.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        when(noteMapper.toDto(any(Note.class)))
+                .thenReturn(noteDto);
+
+        NoteDto result = notesService.createNote(noteDto, null, summaryType);
+
+        assertNotNull(result);
+
+        verify(noteRepository, times(2)).save(any(Note.class));
+
+        verify(aiService, times(1)).getAIResponse(
+                anyString(),
+                anyString(),
+                isNull(),
+                eq(summaryType)
+        );
+
+        verify(noteMapper).toDto(any(Note.class));
     }
     @Test
     void getAllNotes_ShouldReturnAllNotesOfCurrentUser() {
@@ -397,8 +467,12 @@ class NotesServiceImplTest {
         when(noteRepository.findById(1L))
                 .thenReturn(Optional.of(note));
 
-        when(aiService.getAIResponse(anyString(), anyString(), any()))
-                .thenReturn(createAIResponse());
+        when(aiService.getAIResponse(
+                anyString(),
+                anyString(),
+                any(),
+                eq(SummaryType.SHORT)
+        )).thenReturn(createAIResponse());
 
         when(noteRepository.save(any(Note.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
@@ -419,7 +493,8 @@ class NotesServiceImplTest {
         verify(aiService).getAIResponse(
                 eq("Updated Title"),
                 eq("Updated Content"),
-                eq("old-url")
+                eq("old-url"),
+                eq(SummaryType.SHORT)
         );
         verify(noteRepository).save(any(Note.class));
         verify(noteMapper).toDto(any(Note.class));
@@ -436,8 +511,12 @@ class NotesServiceImplTest {
         when(imageManagerService.uploadAndGetUrl(image))
                 .thenReturn("new-image-url");
 
-        when(aiService.getAIResponse(anyString(), anyString(), any()))
-                .thenReturn(createAIResponse());
+        when(aiService.getAIResponse(
+                anyString(),
+                anyString(),
+                any(),
+                eq(SummaryType.SHORT)
+        )).thenReturn(createAIResponse());
 
         when(noteRepository.save(any(Note.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
@@ -473,6 +552,53 @@ class NotesServiceImplTest {
 
         verify(noteRepository, never()).save(any());
         verify(aiService, never()).getAIResponse(any(), any(), any());
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = SummaryType.class, names = {
+            "SHORT",
+            "DETAILED",
+            "BULLET_POINTS"
+    })
+    void shouldUpdateNoteWithDifferentSummaryTypes(SummaryType summaryType) {
+
+        when(noteRepository.findById(1L))
+                .thenReturn(Optional.of(note));
+
+        when(aiService.getAIResponse(
+                anyString(),
+                anyString(),
+                any(),
+                eq(summaryType)
+        )).thenReturn(createAIResponse());
+
+        when(noteRepository.save(any(Note.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        when(noteMapper.toDto(any(Note.class)))
+                .thenReturn(noteDto);
+
+        NoteDto dto = new NoteDto();
+        dto.setTitle("Updated Title");
+        dto.setContent("Updated Content");
+        dto.setImageUrl("old-url");
+
+        NoteDto result =
+                notesService.updateNote(1L, dto, null, summaryType);
+
+        assertNotNull(result);
+
+        verify(noteRepository).findById(1L);
+
+        verify(aiService).getAIResponse(
+                eq("Updated Title"),
+                eq("Updated Content"),
+                eq("old-url"),
+                eq(summaryType)
+        );
+
+        verify(noteRepository).save(any(Note.class));
+        verify(noteMapper).toDto(any(Note.class));
     }
 
     @Test

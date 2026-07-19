@@ -6,6 +6,7 @@ import com.dhaliwal.notemind.entity.Folder;
 import com.dhaliwal.notemind.entity.Note;
 import com.dhaliwal.notemind.entity.Tag;
 import com.dhaliwal.notemind.entity.User;
+import com.dhaliwal.notemind.entity.type.SummaryType;
 import com.dhaliwal.notemind.mapper.NoteMapper;
 import com.dhaliwal.notemind.repository.FolderRepository;
 import com.dhaliwal.notemind.repository.NoteRepository;
@@ -45,6 +46,14 @@ public class NotesServiceImpl implements NotesService {
     @Override
     @CachePut(cacheNames = Cache_name, key = "#result.id")
     public NoteDto createNote(NoteDto noteDto, MultipartFile image) {
+        return createNote(noteDto, image, SummaryType.SHORT);
+    }
+
+    @Override
+    public NoteDto createNote(NoteDto noteDto, MultipartFile image, SummaryType summaryType) {
+        if(summaryType == null){
+            summaryType = SummaryType.SHORT;
+        }
 
         Long userId = securityUtils.getUserId();
 
@@ -68,7 +77,9 @@ public class NotesServiceImpl implements NotesService {
             AINoteResponse aiResponse =
                     aiService.getAIResponse(savedNote.getTitle(),
                             savedNote.getContent(),
-                            imageUrl);
+                            imageUrl,
+                            summaryType
+                    );
 
             if (aiResponse != null) {
 
@@ -132,19 +143,27 @@ public class NotesServiceImpl implements NotesService {
     @Override
     @CachePut(cacheNames = Cache_name, key = "#id")
     public NoteDto updateNote(Long id, NoteDto noteDto, MultipartFile image) {
+        return updateNote(id, noteDto, image, SummaryType.SHORT);
+    }
+
+    @Override
+    public NoteDto updateNote(Long id, NoteDto noteDto, MultipartFile image, SummaryType summaryType) {
 
         Note existingNote = noteRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Note not found"));
-
-        existingNote.setTitle(noteDto.getTitle());
-        existingNote.setContent(noteDto.getContent());
+        if(!existingNote.getTitle().equals(noteDto.getTitle())){
+            existingNote.setTitle(noteDto.getTitle());
+        }
+        if(!existingNote.getContent().equals(noteDto.getContent())){
+            existingNote.setContent(noteDto.getContent());
+        }
         if (image != null && !image.isEmpty()){
             String url = imageManagerService.uploadAndGetUrl(image);
             existingNote.setImageUrl(url);
         }else{
             existingNote.setImageUrl(noteDto.getImageUrl());
         }
-        AINoteResponse aiResponse = aiService.getAIResponse(noteDto.getTitle(), noteDto.getContent(),noteDto.getImageUrl());
+        AINoteResponse aiResponse = aiService.getAIResponse(noteDto.getTitle(), noteDto.getContent(),noteDto.getImageUrl(), summaryType);
         existingNote.setSummary(aiResponse.getSummary());
         Note updated = noteRepository.save(existingNote);
 
