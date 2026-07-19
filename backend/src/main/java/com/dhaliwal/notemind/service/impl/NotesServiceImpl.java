@@ -22,7 +22,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -46,13 +45,8 @@ public class NotesServiceImpl implements NotesService {
     @Override
     @CachePut(cacheNames = Cache_name, key = "#result.id")
     public NoteDto createNote(NoteDto noteDto, MultipartFile image) {
-        return createNote(noteDto, image, SummaryType.SHORT);
-    }
-
-    @Override
-    public NoteDto createNote(NoteDto noteDto, MultipartFile image, SummaryType summaryType) {
-        if(summaryType == null){
-            summaryType = SummaryType.SHORT;
+        if(noteDto.getSummaryType() == null){
+            noteDto.setSummaryType(SummaryType.SHORT);
         }
 
         Long userId = securityUtils.getUserId();
@@ -78,7 +72,7 @@ public class NotesServiceImpl implements NotesService {
                     aiService.getAIResponse(savedNote.getTitle(),
                             savedNote.getContent(),
                             imageUrl,
-                            summaryType
+                            noteDto.getSummaryType()
                     );
 
             if (aiResponse != null) {
@@ -141,13 +135,10 @@ public class NotesServiceImpl implements NotesService {
     }
 
     @Override
-    @CachePut(cacheNames = Cache_name, key = "#id")
     public NoteDto updateNote(Long id, NoteDto noteDto, MultipartFile image) {
-        return updateNote(id, noteDto, image, SummaryType.SHORT);
-    }
-
-    @Override
-    public NoteDto updateNote(Long id, NoteDto noteDto, MultipartFile image, SummaryType summaryType) {
+        if (noteDto.getSummaryType() == null){
+            noteDto.setSummaryType(SummaryType.SHORT);
+        }
 
         Note existingNote = noteRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Note not found"));
@@ -163,7 +154,7 @@ public class NotesServiceImpl implements NotesService {
         }else{
             existingNote.setImageUrl(noteDto.getImageUrl());
         }
-        AINoteResponse aiResponse = aiService.getAIResponse(noteDto.getTitle(), noteDto.getContent(),noteDto.getImageUrl(), summaryType);
+        AINoteResponse aiResponse = aiService.getAIResponse(noteDto.getTitle(), noteDto.getContent(),noteDto.getImageUrl(), noteDto.getSummaryType());
         existingNote.setSummary(aiResponse.getSummary());
         Note updated = noteRepository.save(existingNote);
 

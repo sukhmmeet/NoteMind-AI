@@ -138,6 +138,16 @@ class NotesServiceImplTest {
 
         return note;
     }
+    private NoteDto getNoteDtoByGivenSummaryType(SummaryType summaryType) {
+        noteDto = new NoteDto();
+        noteDto.setId(1L);
+        noteDto.setTitle("Spring Boot");
+        noteDto.setContent("Learning Spring Boot");
+        noteDto.setSummary("Summary");
+        noteDto.setFolderId(1L);
+        noteDto.setSummaryType(summaryType);
+        return noteDto;
+    }
     @Test
     void createNote_ShouldCreateWithoutImage() {
 
@@ -325,7 +335,7 @@ class NotesServiceImplTest {
         when(noteMapper.toDto(any(Note.class)))
                 .thenReturn(noteDto);
 
-        NoteDto result = notesService.createNote(noteDto, null, summaryType);
+        NoteDto result = notesService.createNote(getNoteDtoByGivenSummaryType(summaryType), null);
 
         assertNotNull(result);
 
@@ -582,9 +592,10 @@ class NotesServiceImplTest {
         dto.setTitle("Updated Title");
         dto.setContent("Updated Content");
         dto.setImageUrl("old-url");
+        dto.setSummaryType(summaryType);
 
         NoteDto result =
-                notesService.updateNote(1L, dto, null, summaryType);
+                notesService.updateNote(1L, dto, null);
 
         assertNotNull(result);
 

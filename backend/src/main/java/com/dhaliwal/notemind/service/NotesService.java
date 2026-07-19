@@ -12,15 +12,11 @@ public interface NotesService {
 
     NoteDto createNote(NoteDto noteDto, MultipartFile image);
 
-    NoteDto createNote(NoteDto noteDto, MultipartFile image, SummaryType summaryType);
-
     List<NoteDto> getAllNotes();
 
     NoteDto getNoteById(Long id);
 
     NoteDto updateNote(Long id, NoteDto noteDto, MultipartFile image);
-
-    NoteDto updateNote(Long id, NoteDto noteDto, MultipartFile image, SummaryType summaryType);
 
     void deleteNote(Long id);
 
