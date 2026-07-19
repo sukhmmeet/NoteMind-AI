@@ -32,6 +32,7 @@ public class Note {
     private String summary;
 
     @Enumerated(EnumType.STRING)
+    @Builder.Default
     private SummaryType summaryType = SummaryType.SHORT;
 
     private String imageUrl;

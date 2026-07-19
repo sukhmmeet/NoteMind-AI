@@ -23,7 +23,10 @@ public interface NotesService {
     List<NoteDto> searchNotes(String searchTerm);
 
     NoteDto moveToFolder(Long noteId, Long folderId);
+
     NoteDto removeFromFolder(Long noteId);
+
+    NoteDto refreshSummary(Long noteId, SummaryType summaryType);
 
 }
 

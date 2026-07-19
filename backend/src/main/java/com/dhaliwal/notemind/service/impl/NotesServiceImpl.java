@@ -40,23 +40,124 @@ public class NotesServiceImpl implements NotesService {
     private final ImageManagerService imageManagerService;
     private final UserRepository  userRepository;
     private final SecurityUtils  securityUtils;
-    private final String Cache_name = "notes";
+    private static final String CACHE_NAME = "notes";
+    private static final String SUMMARY_UNAVAILABLE =
+            "Summary is unavailable at this moment";
 
-    @Override
-    @CachePut(cacheNames = Cache_name, key = "#result.id")
-    public NoteDto createNote(NoteDto noteDto, MultipartFile image) {
-        if(noteDto.getSummaryType() == null){
-            noteDto.setSummaryType(SummaryType.SHORT);
-        }
+    /* ==========================================================
+                        Helper Methods
+       ========================================================== */
 
+    private User getCurrentUser() {
         Long userId = securityUtils.getUserId();
 
-        User user = userRepository.findById(userId)
+        if (userId == null) {
+            throw new RuntimeException("User not logged in");
+        }
+
+        return userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
+    }
+
+    private boolean validateNoteDto(NoteDto noteDto) {
+        return noteDto.getTitle() != null
+                && !noteDto.getTitle().isBlank()
+                && noteDto.getContent() != null
+                && !noteDto.getContent().isBlank();
+    }
+
+    private Note enrichNote(Note note, SummaryType summaryType) {
+
+        try {
+
+            AINoteResponse response =
+                    aiService.getAIResponse(
+                            note.getTitle(),
+                            note.getContent(),
+                            note.getImageUrl(),
+                            summaryType
+                    );
+
+            if (response == null) {
+                note.setSummary(SUMMARY_UNAVAILABLE);
+                return note;
+            }
+
+            note.setSummary(
+                    Optional.ofNullable(response.getSummary())
+                            .orElse(SUMMARY_UNAVAILABLE)
+            );
+            note.setSummaryType(summaryType);
+
+            Set<String> tagNames =
+                    Optional.ofNullable(response.getTags())
+                            .map(HashSet::new)
+                            .orElse(new HashSet<>());
+
+            List<Tag> existingTags =
+                    tagRepository.findByNameIn(tagNames);
+
+            Map<String, Tag> tagMap =
+                    existingTags.stream()
+                            .collect(Collectors.toMap(Tag::getName, t -> t));
+
+            Set<Tag> finalTags = new HashSet<>();
+
+            for (String tagName : tagNames) {
+
+                Tag tag = tagMap.get(tagName);
+
+                if (tag == null) {
+                    tag = tagRepository.save(
+                            Tag.builder()
+                                    .name(tagName)
+                                    .build()
+                    );
+                }
+
+                finalTags.add(tag);
+            }
+
+            note.setTags(finalTags);
+
+            return note;
+
+        } catch (Exception e) {
+
+            log.error(
+                    "AI enrichment failed for note {}",
+                    note.getId(),
+                    e
+            );
+
+            note.setSummary(SUMMARY_UNAVAILABLE);
+
+            return note;
+        }
+    }
+
+    /* ==========================================================
+                        Main Logic Methods
+       ========================================================== */
+
+    @Override
+    @Transactional
+    @CachePut(cacheNames = CACHE_NAME, key = "#result.id")
+    public NoteDto createNote(NoteDto noteDto, MultipartFile image) {
+        if(!validateNoteDto(noteDto)) {
+            throw new IllegalArgumentException(
+                    "Title and content are required."
+            );
+        }
+
+        User user = getCurrentUser();
 
         String imageUrl = null;
         if (image != null && !image.isEmpty()) {
             imageUrl = imageManagerService.uploadAndGetUrl(image);
+        }
+        if(noteDto.getSummaryType() == null){
+            noteDto.setSummaryType(SummaryType.SHORT);
         }
 
         Note note = new Note();
@@ -64,84 +165,58 @@ public class NotesServiceImpl implements NotesService {
         note.setTitle(noteDto.getTitle());
         note.setContent(noteDto.getContent());
         note.setImageUrl(imageUrl);
+        note.setSummaryType(noteDto.getSummaryType());
 
-        Note savedNote = noteRepository.save(note);
+        Note saved = noteRepository.save(note);
 
-        try {
-            AINoteResponse aiResponse =
-                    aiService.getAIResponse(savedNote.getTitle(),
-                            savedNote.getContent(),
-                            imageUrl,
-                            noteDto.getSummaryType()
-                    );
 
-            if (aiResponse != null) {
+        saved = noteRepository.save(enrichNote(saved, noteDto.getSummaryType()));
 
-                savedNote.setSummary(aiResponse.getSummary());
-
-                // 4. Optimize tag fetching (avoid N queries)
-                Set<String> tagNames = new HashSet<>(aiResponse.getTags());
-
-                List<Tag> existingTags = tagRepository.findByNameIn(tagNames);
-
-                Map<String, Tag> tagMap = existingTags.stream()
-                        .collect(Collectors.toMap(Tag::getName, t -> t));
-
-                Set<Tag> finalTags = new HashSet<>();
-
-                for (String tagName : tagNames) {
-
-                    Tag tag = tagMap.get(tagName);
-
-                    if (tag == null) {
-                        tag = new Tag();
-                        tag.setName(tagName);
-                        tag = tagRepository.save(tag); // ensure persistence
-                    }
-
-                    finalTags.add(tag);
-                }
-
-                savedNote.setTags(finalTags);
-            }
-        } catch (Exception e) {
-            log.error("AI enrichment failed for noteId={}", savedNote.getId(), e);
-
-            savedNote.setSummary("Summary is unavailable at this moment");
-        }
-
-        Note finalNote = noteRepository.save(savedNote);
-
-        return noteMapper.toDto(finalNote);
+        return noteMapper.toDto(saved);
     }
 
     @Override
     public List<NoteDto> getAllNotes() {
+        User user = getCurrentUser();
 
-        List<Note> notes = noteRepository.findAllByUserId(
-                securityUtils.getUserId()
-        );
-
-        return notes.stream()
+        return noteRepository.findAllByUserId(user.getId())
+                .stream()
                 .map(noteMapper::toDto)
                 .toList();
     }
 
     @Override
-    @Cacheable(cacheNames = Cache_name, key = "#id")
+    @Cacheable(cacheNames = CACHE_NAME, key = "#id")
     public NoteDto getNoteById(Long id) {
+        User user = getCurrentUser();
         Note note = noteRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Not find note of this id:" + id));
+        if(!Objects.equals(note.getUser().getId(), user.getId())){
+            throw new RuntimeException("Access denied.");
+        }
         return noteMapper.toDto(note);
     }
 
     @Override
+    @Transactional
+    @CacheEvict(cacheNames = CACHE_NAME, key = "#id")
     public NoteDto updateNote(Long id, NoteDto noteDto, MultipartFile image) {
+        if(!validateNoteDto(noteDto)) {
+            throw new IllegalArgumentException(
+                    "Title and content are required."
+            );
+        }
+
+        User user = getCurrentUser();
+
         if (noteDto.getSummaryType() == null){
             noteDto.setSummaryType(SummaryType.SHORT);
         }
 
         Note existingNote = noteRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Note not found"));
+        if(!Objects.equals(existingNote.getUser().getId(), user.getId())){
+            throw new RuntimeException("Access denied.");
+        }
         if(!existingNote.getTitle().equals(noteDto.getTitle())){
             existingNote.setTitle(noteDto.getTitle());
         }
@@ -151,23 +226,21 @@ public class NotesServiceImpl implements NotesService {
         if (image != null && !image.isEmpty()){
             String url = imageManagerService.uploadAndGetUrl(image);
             existingNote.setImageUrl(url);
-        }else{
-            existingNote.setImageUrl(noteDto.getImageUrl());
         }
-        AINoteResponse aiResponse = aiService.getAIResponse(noteDto.getTitle(), noteDto.getContent(),noteDto.getImageUrl(), noteDto.getSummaryType());
-        existingNote.setSummary(aiResponse.getSummary());
-        Note updated = noteRepository.save(existingNote);
+        Note finalNote = noteRepository.save(enrichNote(existingNote, noteDto.getSummaryType()));
 
-        return noteMapper.toDto(updated);
+        return noteMapper.toDto(finalNote);
     }
 
     @Override
-    @CacheEvict(cacheNames =  Cache_name, key = "#id")
+    @CacheEvict(cacheNames = CACHE_NAME, key = "#id")
     public void deleteNote(Long id) {
-        if(!noteRepository.existsById(id)){
-            throw new IllegalArgumentException("Note not found");
+        User user = getCurrentUser();
+        Note note = noteRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Not find note of this id:" + id));
+        if(!Objects.equals(note.getUser().getId(), user.getId())){
+            throw new RuntimeException("Access denied.");
         }
-        noteRepository.deleteById(id);
+        noteRepository.delete(note);
     }
 
     @Override
@@ -176,7 +249,7 @@ public class NotesServiceImpl implements NotesService {
         if(userId == null){
             throw new IllegalArgumentException("User not login");
         }
-        if(Objects.equals(searchTerm, "") ||  searchTerm == null){
+        if (searchTerm == null || searchTerm.isBlank()) {
             throw new IllegalArgumentException("Search term is empty");
         }
         List<Note> notes = noteRepository.searchNotes(userId, searchTerm);
@@ -185,27 +258,52 @@ public class NotesServiceImpl implements NotesService {
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = CACHE_NAME, key = "#noteId")
     public NoteDto moveToFolder(Long noteId, Long folderId) {
         Note note = noteRepository.findById(noteId).orElseThrow(() -> new IllegalArgumentException("Note not found"));
         Folder folder = folderRepository.findById(folderId).orElseThrow(() -> new IllegalArgumentException("Folder not found"));
-        User user =  userRepository.findById(securityUtils.getUserId()).orElseThrow(() -> new IllegalArgumentException("User not found"));
+        User user =  getCurrentUser();
         if(!note.getUser().equals(user) || !folder.getUser().equals(user)){
             throw new IllegalArgumentException("Unauthorized move");
         }
+        if (Objects.equals(note.getFolder(), folder)) {
+            return noteMapper.toDto(note);
+        }
         note.setFolder(folder);
-        noteRepository.save(note);
-        return noteMapper.toDto(note);
+        
+        Note updated = noteRepository.save(note);
+
+        return noteMapper.toDto(updated);
     }
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = CACHE_NAME, key = "#noteId")
     public NoteDto removeFromFolder(Long noteId) {
         Note note = noteRepository.findById(noteId).orElseThrow(() -> new IllegalArgumentException("Note not found"));
-        User user =  userRepository.findById(securityUtils.getUserId()).orElseThrow(() -> new IllegalArgumentException("User not found"));
+        User user =  getCurrentUser();
         if(!note.getUser().equals(user)){
             throw new IllegalArgumentException("Unauthorized move");
         }
         note.setFolder(null);
         return noteMapper.toDto(noteRepository.save(note));
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(cacheNames = CACHE_NAME, key = "#noteId")
+    public NoteDto refreshSummary(Long noteId, SummaryType summaryType) {
+        User user = getCurrentUser();
+        Note note = noteRepository.findById(noteId).orElseThrow(() -> new IllegalArgumentException("Note not found"));
+        if(!Objects.equals(note.getUser().getId(), user.getId())){
+            throw new RuntimeException("Access denied.");
+        }
+        if (summaryType == null) {
+            summaryType = SummaryType.SHORT;
+        }
+
+        Note updated = noteRepository.save(enrichNote(note, summaryType));
+
+        return noteMapper.toDto(updated);
     }
 }
