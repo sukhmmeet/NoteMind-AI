@@ -1,8 +1,11 @@
 package com.dhaliwal.notemind.security;
 
 import com.dhaliwal.notemind.entity.User;
-import com.dhaliwal.notemind.security.dto.RequestDto;
-import com.dhaliwal.notemind.security.dto.ResponseDto;
+import com.dhaliwal.notemind.repository.UserRepository;
+import com.dhaliwal.notemind.security.dto.AuthRequestDto;
+import com.dhaliwal.notemind.security.dto.AuthResponseDto;
+import com.dhaliwal.notemind.security.service.AuthService;
+import com.dhaliwal.notemind.security.util.AuthUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,13 +43,13 @@ class AuthServiceTest {
     @InjectMocks
     private AuthService authService;
 
-    private RequestDto requestDto;
+    private AuthRequestDto authRequestDto;
 
     @BeforeEach
     void setUp() {
-        requestDto = new RequestDto();
-        requestDto.setUsername("john");
-        requestDto.setPassword("password123");
+        authRequestDto = new AuthRequestDto();
+        authRequestDto.setUsername("john");
+        authRequestDto.setPassword("password123");
     }
 
     @Test
@@ -69,7 +72,7 @@ class AuthServiceTest {
         when(authUtil.generateAccessToken(savedUser))
                 .thenReturn("jwt-token");
 
-        ResponseDto response = authService.signup(requestDto);
+        AuthResponseDto response = authService.signup(authRequestDto);
 
         assertNotNull(response);
         assertEquals(1L, response.getUserId());
@@ -95,7 +98,7 @@ class AuthServiceTest {
 
         RuntimeException exception = assertThrows(
                 RuntimeException.class,
-                () -> authService.signup(requestDto)
+                () -> authService.signup(authRequestDto)
         );
 
         assertEquals("Username already exists", exception.getMessage());
@@ -120,7 +123,7 @@ class AuthServiceTest {
         when(authUtil.generateAccessToken(user))
                 .thenReturn("jwt-token");
 
-        ResponseDto response = authService.login(requestDto);
+        AuthResponseDto response = authService.login(authRequestDto);
 
         assertNotNull(response);
         assertEquals("john", response.getUsername());
@@ -142,7 +145,7 @@ class AuthServiceTest {
 
         assertThrows(
                 UsernameNotFoundException.class,
-                () -> authService.login(requestDto)
+                () -> authService.login(authRequestDto)
         );
 
         verify(authUtil, never()).generateAccessToken(any());

@@ -10,7 +10,7 @@ import com.dhaliwal.notemind.mapper.FolderMapper;
 import com.dhaliwal.notemind.mapper.NoteMapper;
 import com.dhaliwal.notemind.repository.FolderRepository;
 import com.dhaliwal.notemind.repository.NoteRepository;
-import com.dhaliwal.notemind.security.UserRepository;
+import com.dhaliwal.notemind.repository.UserRepository;
 import com.dhaliwal.notemind.security.util.SecurityUtils;
 import com.dhaliwal.notemind.service.FolderService;
 import jakarta.transaction.Transactional;

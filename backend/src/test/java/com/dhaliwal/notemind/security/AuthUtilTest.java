@@ -1,7 +1,7 @@
 package com.dhaliwal.notemind.security;
 
 import com.dhaliwal.notemind.entity.User;
-import io.jsonwebtoken.ExpiredJwtException;
+import com.dhaliwal.notemind.security.util.AuthUtil;
 import io.jsonwebtoken.MalformedJwtException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

@@ -1,4 +1,4 @@
-package com.dhaliwal.notemind.security;
+package com.dhaliwal.notemind.repository;
 
 import com.dhaliwal.notemind.entity.Note;
 import com.dhaliwal.notemind.entity.User;

@@ -1,6 +1,9 @@
 package com.dhaliwal.notemind.security;
 
 import com.dhaliwal.notemind.entity.User;
+import com.dhaliwal.notemind.repository.UserRepository;
+import com.dhaliwal.notemind.security.AuthFilter.JwtAuthFilter;
+import com.dhaliwal.notemind.security.util.AuthUtil;
 import jakarta.servlet.FilterChain;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

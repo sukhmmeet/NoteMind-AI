@@ -1,6 +1,6 @@
 package com.dhaliwal.notemind.security;
 
-import lombok.AllArgsConstructor;
+import com.dhaliwal.notemind.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;

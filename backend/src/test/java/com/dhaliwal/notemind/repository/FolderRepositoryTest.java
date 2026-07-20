@@ -2,9 +2,6 @@ package com.dhaliwal.notemind.repository;
 
 import com.dhaliwal.notemind.entity.Folder;
 import com.dhaliwal.notemind.entity.User;
-import com.dhaliwal.notemind.security.UserRepository;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;

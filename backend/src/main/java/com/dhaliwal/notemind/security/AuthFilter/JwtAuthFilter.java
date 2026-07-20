@@ -1,6 +1,8 @@
-package com.dhaliwal.notemind.security;
+package com.dhaliwal.notemind.security.AuthFilter;
 
 import com.dhaliwal.notemind.entity.User;
+import com.dhaliwal.notemind.repository.UserRepository;
+import com.dhaliwal.notemind.security.util.AuthUtil;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
