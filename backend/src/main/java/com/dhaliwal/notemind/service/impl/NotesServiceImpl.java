@@ -226,6 +226,8 @@ public class NotesServiceImpl implements NotesService {
         if (image != null && !image.isEmpty()){
             String url = imageManagerService.uploadAndGetUrl(image);
             existingNote.setImageUrl(url);
+        }else{
+            existingNote.setImageUrl(noteDto.getImageUrl());
         }
         Note finalNote = noteRepository.save(enrichNote(existingNote, noteDto.getSummaryType()));
 

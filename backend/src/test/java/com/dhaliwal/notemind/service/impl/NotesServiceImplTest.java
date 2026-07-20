@@ -355,6 +355,8 @@ class NotesServiceImplTest {
 
         when(securityUtils.getUserId()).thenReturn(1L);
 
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
         Note note1 = createNoteWithoutFolder();
         Note note2 = new Note();
         note2.setId(20L);
@@ -385,6 +387,10 @@ class NotesServiceImplTest {
     }
     @Test
     void getNoteById_ShouldReturnNote() {
+        when(userRepository.findById(anyLong()))
+                .thenReturn(Optional.of(user));
+
+        when(securityUtils.getUserId()).thenReturn(1L);
 
         when(noteRepository.findById(1L))
                 .thenReturn(Optional.of(note));
@@ -402,6 +408,10 @@ class NotesServiceImplTest {
     }
     @Test
     void getNoteById_ShouldThrowException_WhenNoteNotFound() {
+        when(userRepository.findById(anyLong()))
+                .thenReturn(Optional.of(user));
+
+        when(securityUtils.getUserId()).thenReturn(1L);
 
         when(noteRepository.findById(1L))
                 .thenReturn(Optional.empty());
@@ -473,6 +483,10 @@ class NotesServiceImplTest {
     }
     @Test
     void updateNote_ShouldUpdateWithoutImage() {
+        when(userRepository.findById(anyLong()))
+                .thenReturn(Optional.of(user));
+
+        when(securityUtils.getUserId()).thenReturn(1L);
 
         when(noteRepository.findById(1L))
                 .thenReturn(Optional.of(note));
@@ -512,6 +526,10 @@ class NotesServiceImplTest {
 
     @Test
     void updateNote_ShouldUpdateWithImage() {
+        when(userRepository.findById(anyLong()))
+                .thenReturn(Optional.of(user));
+
+        when(securityUtils.getUserId()).thenReturn(1L);
 
         MockMultipartFile image = createImage();
 
@@ -549,6 +567,10 @@ class NotesServiceImplTest {
 
     @Test
     void updateNote_ShouldThrowException_WhenNoteNotFound() {
+        when(userRepository.findById(anyLong()))
+                .thenReturn(Optional.of(user));
+
+        when(securityUtils.getUserId()).thenReturn(1L);
 
         when(noteRepository.findById(1L))
                 .thenReturn(Optional.empty());
@@ -572,6 +594,15 @@ class NotesServiceImplTest {
     })
     void shouldUpdateNoteWithDifferentSummaryTypes(SummaryType summaryType) {
 
+        // Existing note already has an image
+        note.setImageUrl("old-url");
+
+        when(securityUtils.getUserId())
+                .thenReturn(1L);
+
+        when(userRepository.findById(1L))
+                .thenReturn(Optional.of(user));
+
         when(noteRepository.findById(1L))
                 .thenReturn(Optional.of(note));
 
@@ -582,6 +613,12 @@ class NotesServiceImplTest {
                 eq(summaryType)
         )).thenReturn(createAIResponse());
 
+        when(tagRepository.findByNameIn(anySet()))
+                .thenReturn(Collections.emptyList());
+
+        when(tagRepository.save(any(Tag.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
         when(noteRepository.save(any(Note.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -591,11 +628,9 @@ class NotesServiceImplTest {
         NoteDto dto = new NoteDto();
         dto.setTitle("Updated Title");
         dto.setContent("Updated Content");
-        dto.setImageUrl("old-url");
         dto.setSummaryType(summaryType);
 
-        NoteDto result =
-                notesService.updateNote(1L, dto, null);
+        NoteDto result = notesService.updateNote(1L, dto, null);
 
         assertNotNull(result);
 
@@ -604,7 +639,7 @@ class NotesServiceImplTest {
         verify(aiService).getAIResponse(
                 eq("Updated Title"),
                 eq("Updated Content"),
-                eq("old-url"),
+                eq(null),
                 eq(summaryType)
         );
 
@@ -614,29 +649,37 @@ class NotesServiceImplTest {
 
     @Test
     void deleteNote_ShouldDeleteSuccessfully() {
+        when(userRepository.findById(anyLong()))
+                .thenReturn(Optional.of(user));
 
-        when(noteRepository.existsById(1L))
-                .thenReturn(true);
+        when(securityUtils.getUserId()).thenReturn(1L);
+
+        when(noteRepository.findById(1L))
+                .thenReturn(Optional.of(note));
 
         notesService.deleteNote(1L);
 
-        verify(noteRepository).deleteById(1L);
+        verify(noteRepository).delete(note);
     }
 
     @Test
     void deleteNote_ShouldThrowException_WhenNoteNotFound() {
+        when(userRepository.findById(anyLong()))
+                .thenReturn(Optional.of(user));
 
-        when(noteRepository.existsById(1L))
-                .thenReturn(false);
+        when(securityUtils.getUserId()).thenReturn(1L);
+
+        when(noteRepository.findById(1L))
+                .thenReturn(Optional.empty());
 
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
                 () -> notesService.deleteNote(1L)
         );
 
-        assertEquals("Note not found", exception.getMessage());
+        assertEquals("Not find note of this id:" + 1L, exception.getMessage());
 
-        verify(noteRepository, never()).deleteById(anyLong());
+        verify(noteRepository, never()).delete(note);
     }
     @Test
     void moveToFolder_ShouldMoveSuccessfully() {
@@ -806,4 +849,274 @@ class NotesServiceImplTest {
         verify(noteRepository, never()).save(any());
     }
 
+    @ParameterizedTest
+    @EnumSource(value = SummaryType.class, names = {
+            "SHORT",
+            "DETAILED",
+            "BULLET_POINTS"
+    })
+    void refreshSummary_ShouldRefreshSuccessfully(SummaryType summaryType) {
+
+        note.setImageUrl("image-url");
+
+        when(securityUtils.getUserId()).thenReturn(1L);
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(noteRepository.findById(1L)).thenReturn(Optional.of(note));
+
+        when(aiService.getAIResponse(
+                anyString(),
+                anyString(),
+                any(),
+                eq(summaryType)
+        )).thenReturn(createAIResponse());
+
+        when(tagRepository.findByNameIn(anySet()))
+                .thenReturn(Collections.emptyList());
+
+        when(tagRepository.save(any(Tag.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        when(noteRepository.save(any(Note.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        when(noteMapper.toDto(any(Note.class)))
+                .thenReturn(noteDto);
+
+        NoteDto result =
+                notesService.refreshSummary(1L, summaryType);
+
+        assertNotNull(result);
+
+        verify(aiService).getAIResponse(
+                eq(note.getTitle()),
+                eq(note.getContent()),
+                eq("image-url"),
+                eq(summaryType)
+        );
+
+        verify(noteRepository).save(any(Note.class));
+        verify(noteMapper).toDto(any(Note.class));
+    }
+
+    @Test
+    void refreshSummary_ShouldUseShort_WhenSummaryTypeIsNull() {
+
+        note.setImageUrl("image-url");
+
+        when(securityUtils.getUserId()).thenReturn(1L);
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(noteRepository.findById(1L)).thenReturn(Optional.of(note));
+
+        when(aiService.getAIResponse(
+                anyString(),
+                anyString(),
+                any(),
+                eq(SummaryType.SHORT)
+        )).thenReturn(createAIResponse());
+
+        when(tagRepository.findByNameIn(anySet()))
+                .thenReturn(Collections.emptyList());
+
+        when(tagRepository.save(any(Tag.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        when(noteRepository.save(any(Note.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        when(noteMapper.toDto(any(Note.class)))
+                .thenReturn(noteDto);
+
+        NoteDto result =
+                notesService.refreshSummary(1L, null);
+
+        assertNotNull(result);
+
+        verify(aiService).getAIResponse(
+                anyString(),
+                anyString(),
+                any(),
+                eq(SummaryType.SHORT)
+        );
+    }
+
+    @Test
+    void refreshSummary_ShouldThrow_WhenNoteNotFound() {
+
+        when(securityUtils.getUserId()).thenReturn(1L);
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
+        when(noteRepository.findById(1L))
+                .thenReturn(Optional.empty());
+
+        IllegalArgumentException exception =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> notesService.refreshSummary(1L, SummaryType.SHORT)
+                );
+
+        assertEquals("Note not found", exception.getMessage());
+
+        verify(aiService, never()).getAIResponse(any(), any(), any(), any());
+    }
+
+    @Test
+    void refreshSummary_ShouldThrow_WhenUserNotLoggedIn() {
+
+        when(securityUtils.getUserId()).thenReturn(null);
+
+        RuntimeException exception =
+                assertThrows(
+                        RuntimeException.class,
+                        () -> notesService.refreshSummary(1L, SummaryType.SHORT)
+                );
+
+        assertEquals("User not logged in", exception.getMessage());
+
+        verify(noteRepository, never()).findById(anyLong());
+    }
+    @Test
+    void refreshSummary_ShouldThrow_WhenUserNotFound() {
+
+        when(securityUtils.getUserId()).thenReturn(1L);
+
+        when(userRepository.findById(1L))
+                .thenReturn(Optional.empty());
+
+        RuntimeException exception =
+                assertThrows(
+                        RuntimeException.class,
+                        () -> notesService.refreshSummary(1L, SummaryType.SHORT)
+                );
+
+        assertEquals("User not found", exception.getMessage());
+
+        verify(noteRepository, never()).findById(anyLong());
+    }
+
+    @Test
+    void refreshSummary_ShouldThrow_WhenAccessDenied() {
+
+        User anotherUser = new User();
+        anotherUser.setId(99L);
+
+        note.setUser(anotherUser);
+
+        when(securityUtils.getUserId()).thenReturn(1L);
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
+        when(noteRepository.findById(1L))
+                .thenReturn(Optional.of(note));
+
+        RuntimeException exception =
+                assertThrows(
+                        RuntimeException.class,
+                        () -> notesService.refreshSummary(1L, SummaryType.SHORT)
+                );
+
+        assertEquals("Access denied.", exception.getMessage());
+
+        verify(aiService, never()).getAIResponse(any(), any(), any(), any());
+    }
+
+    @Test
+    void refreshSummary_ShouldHandleAiFailure() {
+
+        when(securityUtils.getUserId()).thenReturn(1L);
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(noteRepository.findById(1L)).thenReturn(Optional.of(note));
+
+        when(aiService.getAIResponse(any(), any(), any(), any()))
+                .thenThrow(new RuntimeException("AI Failed"));
+
+        when(noteRepository.save(any(Note.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        when(noteMapper.toDto(any(Note.class)))
+                .thenReturn(noteDto);
+
+        NoteDto result =
+                notesService.refreshSummary(1L, SummaryType.SHORT);
+
+        assertNotNull(result);
+
+        verify(noteRepository).save(any(Note.class));
+    }
+
+
+    @Test
+    void refreshSummary_ShouldHandleNullAIResponse() {
+
+        when(securityUtils.getUserId()).thenReturn(1L);
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(noteRepository.findById(1L)).thenReturn(Optional.of(note));
+
+        when(aiService.getAIResponse(any(), any(), any(), any()))
+                .thenReturn(null);
+
+        when(noteRepository.save(any(Note.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        when(noteMapper.toDto(any(Note.class)))
+                .thenReturn(noteDto);
+
+        NoteDto result =
+                notesService.refreshSummary(1L, SummaryType.SHORT);
+
+        assertNotNull(result);
+
+        verify(noteRepository).save(any(Note.class));
+    }
+
+    @Test
+    void refreshSummary_ShouldReuseExistingTags() {
+
+        Tag javaTag = createTag("java");
+        Tag springTag = createTag("spring");
+
+        when(securityUtils.getUserId()).thenReturn(1L);
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(noteRepository.findById(1L)).thenReturn(Optional.of(note));
+
+        when(aiService.getAIResponse(any(), any(), any(), any()))
+                .thenReturn(createAIResponse());
+
+        when(tagRepository.findByNameIn(anySet()))
+                .thenReturn(List.of(javaTag, springTag));
+
+        when(noteRepository.save(any(Note.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        when(noteMapper.toDto(any(Note.class)))
+                .thenReturn(noteDto);
+
+        notesService.refreshSummary(1L, SummaryType.SHORT);
+
+        verify(tagRepository, never()).save(any(Tag.class));
+    }
+    @Test
+    void refreshSummary_ShouldCreateNewTags() {
+
+        when(securityUtils.getUserId()).thenReturn(1L);
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(noteRepository.findById(1L)).thenReturn(Optional.of(note));
+
+        when(aiService.getAIResponse(any(), any(), any(), any()))
+                .thenReturn(createAIResponse());
+
+        when(tagRepository.findByNameIn(anySet()))
+                .thenReturn(Collections.emptyList());
+
+        when(tagRepository.save(any(Tag.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        when(noteRepository.save(any(Note.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        when(noteMapper.toDto(any(Note.class)))
+                .thenReturn(noteDto);
+
+        notesService.refreshSummary(1L, SummaryType.SHORT);
+
+        verify(tagRepository, times(2)).save(any(Tag.class));
+    }
 }
