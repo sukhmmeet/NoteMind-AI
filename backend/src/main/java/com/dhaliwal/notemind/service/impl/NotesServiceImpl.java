@@ -303,7 +303,7 @@ public class NotesServiceImpl implements NotesService {
         if (summaryType == null) {
             summaryType = SummaryType.SHORT;
         }
-
+        note.setSummaryType(summaryType);
         Note updated = noteRepository.save(enrichNote(note, summaryType));
 
         return noteMapper.toDto(updated);

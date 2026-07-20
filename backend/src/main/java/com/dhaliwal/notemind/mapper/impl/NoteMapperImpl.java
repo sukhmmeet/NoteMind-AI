@@ -27,6 +27,7 @@ public class NoteMapperImpl implements NoteMapper {
                 .imageUrl(note.getImageUrl())
                 .createdAt(note.getCreatedAt())
                 .updatedAt(note.getUpdatedAt())
+                .summaryType(note.getSummaryType())
                 .tags(note.getTags().stream().map(tagMapper::toDto).toList())
                 .folderId(folderId)
                 .build();

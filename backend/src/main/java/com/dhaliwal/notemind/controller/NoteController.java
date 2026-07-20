@@ -1,6 +1,7 @@
 package com.dhaliwal.notemind.controller;
 
 import com.dhaliwal.notemind.dto.NoteDto;
+import com.dhaliwal.notemind.entity.type.SummaryType;
 import com.dhaliwal.notemind.service.NotesService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.MediaType;
@@ -64,5 +65,10 @@ public class NoteController {
     @GetMapping("/search")
     public List<NoteDto> search(@RequestParam String query) {
         return notesService.searchNotes(query);
+    }
+
+    @GetMapping("/refresh-summary/{id}")
+    public ResponseEntity<NoteDto> refreshSummary(@PathVariable long id, @RequestParam SummaryType type) {
+        return ResponseEntity.ok(notesService.refreshSummary(id, type));
     }
 }
