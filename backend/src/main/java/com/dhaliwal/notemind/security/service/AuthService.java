@@ -32,7 +32,7 @@ public class AuthService {
     public AuthResponseDto signup(AuthRequestDto authRequestDto) {
 
         if (userRepository.findByUsername(authRequestDto.getUsername()).isPresent()) {
-            throw new RuntimeException("Username already exists");
+            throw new UsernameNotFoundException("Username already exists");
         }
 
         User user = new User();

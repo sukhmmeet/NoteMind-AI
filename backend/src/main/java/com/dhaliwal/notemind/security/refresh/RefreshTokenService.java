@@ -1,6 +1,8 @@
 package com.dhaliwal.notemind.security.refresh;
 
 import com.dhaliwal.notemind.entity.RefreshToken;
+import com.dhaliwal.notemind.exception.InvalidRefreshTokenException;
+import com.dhaliwal.notemind.exception.RefreshTokenExpiredException;
 import com.dhaliwal.notemind.security.refresh.dto.RefreshRequestDto;
 import com.dhaliwal.notemind.security.refresh.dto.RefreshResponseDto;
 import com.dhaliwal.notemind.security.util.AuthUtil;
@@ -25,14 +27,14 @@ public class RefreshTokenService {
         RefreshToken refreshToken =
                 refreshTokenRepository.findByTokenAndRevokedFalse(hash)
                         .orElseThrow(() ->
-                                new IllegalArgumentException("Invalid refresh token"));
+                                new InvalidRefreshTokenException("Invalid refresh token"));
 
         if (Instant.now().isAfter(refreshToken.getExpiryDate())) {
 
             refreshToken.setRevoked(true);
             refreshTokenRepository.save(refreshToken);
 
-            throw new RuntimeException("Refresh token expired");
+            throw new RefreshTokenExpiredException("Refresh token expired");
         }
 
         String jwt = authUtil.generateAccessToken(refreshToken.getUser());
@@ -60,7 +62,7 @@ public class RefreshTokenService {
         RefreshToken refreshToken =
                 refreshTokenRepository.findByTokenAndRevokedFalse(hash)
                         .orElseThrow(() ->
-                                new IllegalArgumentException("Invalid refresh token"));
+                                new InvalidRefreshTokenException("Invalid refresh token"));
 
         refreshToken.setExpiryDate(Instant.now());
         refreshToken.setRevoked(true);
