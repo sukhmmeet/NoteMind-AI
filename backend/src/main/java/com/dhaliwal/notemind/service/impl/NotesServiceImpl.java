@@ -7,6 +7,7 @@ import com.dhaliwal.notemind.entity.Note;
 import com.dhaliwal.notemind.entity.Tag;
 import com.dhaliwal.notemind.entity.User;
 import com.dhaliwal.notemind.entity.type.SummaryType;
+import com.dhaliwal.notemind.exception.*;
 import com.dhaliwal.notemind.mapper.NoteMapper;
 import com.dhaliwal.notemind.repository.FolderRepository;
 import com.dhaliwal.notemind.repository.NoteRepository;
@@ -22,6 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -52,11 +54,11 @@ public class NotesServiceImpl implements NotesService {
         Long userId = securityUtils.getUserId();
 
         if (userId == null) {
-            throw new RuntimeException("User not logged in");
+            throw new UserNotLoggedInException("User not logged in");
         }
 
         return userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
     }
 
     private boolean validateNoteDto(NoteDto noteDto) {
@@ -145,7 +147,7 @@ public class NotesServiceImpl implements NotesService {
     @CachePut(cacheNames = CACHE_NAME, key = "#result.id")
     public NoteDto createNote(NoteDto noteDto, MultipartFile image) {
         if(!validateNoteDto(noteDto)) {
-            throw new IllegalArgumentException(
+            throw new InvalidNoteException(
                     "Title and content are required."
             );
         }
@@ -189,9 +191,9 @@ public class NotesServiceImpl implements NotesService {
     @Cacheable(cacheNames = CACHE_NAME, key = "#id")
     public NoteDto getNoteById(Long id) {
         User user = getCurrentUser();
-        Note note = noteRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Not find note of this id:" + id));
+        Note note = noteRepository.findById(id).orElseThrow(() -> new NoteNotFoundException("Not find note of this id:" + id));
         if(!Objects.equals(note.getUser().getId(), user.getId())){
-            throw new RuntimeException("Access denied.");
+            throw new InvalidCredentialsException("Access denied.");
         }
         return noteMapper.toDto(note);
     }
@@ -201,7 +203,7 @@ public class NotesServiceImpl implements NotesService {
     @CacheEvict(cacheNames = CACHE_NAME, key = "#id")
     public NoteDto updateNote(Long id, NoteDto noteDto, MultipartFile image) {
         if(!validateNoteDto(noteDto)) {
-            throw new IllegalArgumentException(
+            throw new InvalidNoteException(
                     "Title and content are required."
             );
         }
@@ -213,9 +215,9 @@ public class NotesServiceImpl implements NotesService {
         }
 
         Note existingNote = noteRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Note not found"));
+                .orElseThrow(() -> new NoteNotFoundException("Note not found"));
         if(!Objects.equals(existingNote.getUser().getId(), user.getId())){
-            throw new RuntimeException("Access denied.");
+            throw new InvalidCredentialsException("Access denied.");
         }
         if(!existingNote.getTitle().equals(noteDto.getTitle())){
             existingNote.setTitle(noteDto.getTitle());
@@ -238,9 +240,9 @@ public class NotesServiceImpl implements NotesService {
     @CacheEvict(cacheNames = CACHE_NAME, key = "#id")
     public void deleteNote(Long id) {
         User user = getCurrentUser();
-        Note note = noteRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Not find note of this id:" + id));
+        Note note = noteRepository.findById(id).orElseThrow(() -> new NoteNotFoundException("Not find note of this id:" + id));
         if(!Objects.equals(note.getUser().getId(), user.getId())){
-            throw new RuntimeException("Access denied.");
+            throw new InvalidCredentialsException("Access denied.");
         }
         noteRepository.delete(note);
     }
@@ -249,10 +251,10 @@ public class NotesServiceImpl implements NotesService {
     public List<NoteDto> searchNotes(String searchTerm) {
         Long userId = securityUtils.getUserId();
         if(userId == null){
-            throw new IllegalArgumentException("User not login");
+            throw new UserNotLoggedInException("User not login");
         }
         if (searchTerm == null || searchTerm.isBlank()) {
-            throw new IllegalArgumentException("Search term is empty");
+            throw new SearchTermIsEmptyException("Search term is empty");
         }
         List<Note> notes = noteRepository.searchNotes(userId, searchTerm);
         return notes.stream().map(noteMapper::toDto).toList();
@@ -262,11 +264,11 @@ public class NotesServiceImpl implements NotesService {
     @Transactional
     @CacheEvict(cacheNames = CACHE_NAME, key = "#noteId")
     public NoteDto moveToFolder(Long noteId, Long folderId) {
-        Note note = noteRepository.findById(noteId).orElseThrow(() -> new IllegalArgumentException("Note not found"));
-        Folder folder = folderRepository.findById(folderId).orElseThrow(() -> new IllegalArgumentException("Folder not found"));
+        Note note = noteRepository.findById(noteId).orElseThrow(() -> new NoteNotFoundException("Note not found"));
+        Folder folder = folderRepository.findById(folderId).orElseThrow(() -> new FolderNotFoundException("Folder not found"));
         User user =  getCurrentUser();
         if(!note.getUser().equals(user) || !folder.getUser().equals(user)){
-            throw new IllegalArgumentException("Unauthorized move");
+            throw new InvalidCredentialsException("Unauthorized move");
         }
         if (Objects.equals(note.getFolder(), folder)) {
             return noteMapper.toDto(note);
@@ -282,10 +284,10 @@ public class NotesServiceImpl implements NotesService {
     @Transactional
     @CacheEvict(cacheNames = CACHE_NAME, key = "#noteId")
     public NoteDto removeFromFolder(Long noteId) {
-        Note note = noteRepository.findById(noteId).orElseThrow(() -> new IllegalArgumentException("Note not found"));
+        Note note = noteRepository.findById(noteId).orElseThrow(() -> new NoteNotFoundException("Note not found"));
         User user =  getCurrentUser();
         if(!note.getUser().equals(user)){
-            throw new IllegalArgumentException("Unauthorized move");
+            throw new InvalidCredentialsException("Unauthorized move");
         }
         note.setFolder(null);
         return noteMapper.toDto(noteRepository.save(note));
@@ -296,9 +298,9 @@ public class NotesServiceImpl implements NotesService {
     @CacheEvict(cacheNames = CACHE_NAME, key = "#noteId")
     public NoteDto refreshSummary(Long noteId, SummaryType summaryType) {
         User user = getCurrentUser();
-        Note note = noteRepository.findById(noteId).orElseThrow(() -> new IllegalArgumentException("Note not found"));
+        Note note = noteRepository.findById(noteId).orElseThrow(() -> new NoteNotFoundException("Note not found"));
         if(!Objects.equals(note.getUser().getId(), user.getId())){
-            throw new RuntimeException("Access denied.");
+            throw new InvalidCredentialsException("Access denied.");
         }
         if (summaryType == null) {
             summaryType = SummaryType.SHORT;

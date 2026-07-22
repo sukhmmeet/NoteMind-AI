@@ -2,6 +2,7 @@ package com.dhaliwal.notemind.service.impl;
 
 import com.dhaliwal.notemind.dto.AINoteResponse;
 import com.dhaliwal.notemind.entity.type.SummaryType;
+import com.dhaliwal.notemind.exception.AiServiceException;
 import com.dhaliwal.notemind.service.AIService;
 import com.dhaliwal.notemind.util.Util;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -74,7 +75,7 @@ public class AIServiceImpl implements AIService {
             String response = responseEntity.getBody();
 
             if (response == null || response.isEmpty()) {
-                throw new RuntimeException("Empty response from AI");
+                throw new AiServiceException("Empty response from AI");
             }
 
             JsonNode root = objectMapper.readTree(response);
@@ -82,7 +83,7 @@ public class AIServiceImpl implements AIService {
             JsonNode choices = root.path("choices");
 
             if (!choices.isArray() || choices.isEmpty()) {
-                throw new RuntimeException("Invalid AI response: no choices");
+                throw new AiServiceException("Invalid AI response: no choices");
             }
 
             String summaryResponse = choices.get(0)
@@ -100,7 +101,7 @@ public class AIServiceImpl implements AIService {
             return aiNoteResponse;
 
         } catch (Exception e) {
-            throw new RuntimeException("Failed to get summary from AI", e);
+            throw new AiServiceException("Failed to get summary from AI", e);
         }
     }
 

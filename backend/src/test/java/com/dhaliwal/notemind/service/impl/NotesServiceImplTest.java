@@ -7,6 +7,10 @@ import com.dhaliwal.notemind.entity.Note;
 import com.dhaliwal.notemind.entity.Tag;
 import com.dhaliwal.notemind.entity.User;
 import com.dhaliwal.notemind.entity.type.SummaryType;
+import com.dhaliwal.notemind.exception.FolderNotFoundException;
+import com.dhaliwal.notemind.exception.InvalidCredentialsException;
+import com.dhaliwal.notemind.exception.NoteNotFoundException;
+import com.dhaliwal.notemind.exception.UserNotLoggedInException;
 import com.dhaliwal.notemind.mapper.NoteMapper;
 import com.dhaliwal.notemind.repository.FolderRepository;
 import com.dhaliwal.notemind.repository.NoteRepository;
@@ -416,9 +420,9 @@ class NotesServiceImplTest {
         when(noteRepository.findById(1L))
                 .thenReturn(Optional.empty());
 
-        IllegalArgumentException exception =
+        NoteNotFoundException exception =
                 assertThrows(
-                        IllegalArgumentException.class,
+                        NoteNotFoundException.class,
                         () -> notesService.getNoteById(1L)
                 );
 
@@ -456,9 +460,9 @@ class NotesServiceImplTest {
 
         when(securityUtils.getUserId()).thenReturn(null);
 
-        IllegalArgumentException exception =
+        UserNotLoggedInException exception =
                 assertThrows(
-                        IllegalArgumentException.class,
+                        UserNotLoggedInException.class,
                         () -> notesService.searchNotes("Spring")
                 );
 
@@ -672,8 +676,8 @@ class NotesServiceImplTest {
         when(noteRepository.findById(1L))
                 .thenReturn(Optional.empty());
 
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        NoteNotFoundException exception = assertThrows(
+                NoteNotFoundException.class,
                 () -> notesService.deleteNote(1L)
         );
 
@@ -718,9 +722,9 @@ class NotesServiceImplTest {
         when(noteRepository.findById(1L))
                 .thenReturn(Optional.empty());
 
-        IllegalArgumentException exception =
+        NoteNotFoundException exception =
                 assertThrows(
-                        IllegalArgumentException.class,
+                        NoteNotFoundException.class,
                         () -> notesService.moveToFolder(1L, 1L)
                 );
 
@@ -738,9 +742,9 @@ class NotesServiceImplTest {
         when(folderRepository.findById(1L))
                 .thenReturn(Optional.empty());
 
-        IllegalArgumentException exception =
+        FolderNotFoundException exception =
                 assertThrows(
-                        IllegalArgumentException.class,
+                        FolderNotFoundException.class,
                         () -> notesService.moveToFolder(1L, 1L)
                 );
 
@@ -767,9 +771,9 @@ class NotesServiceImplTest {
         when(userRepository.findById(1L))
                 .thenReturn(Optional.of(user));
 
-        IllegalArgumentException exception =
+        InvalidCredentialsException exception =
                 assertThrows(
-                        IllegalArgumentException.class,
+                        InvalidCredentialsException.class,
                         () -> notesService.moveToFolder(1L, 1L)
                 );
 
@@ -812,9 +816,9 @@ class NotesServiceImplTest {
         when(noteRepository.findById(1L))
                 .thenReturn(Optional.empty());
 
-        IllegalArgumentException exception =
+        NoteNotFoundException exception =
                 assertThrows(
-                        IllegalArgumentException.class,
+                        NoteNotFoundException.class,
                         () -> notesService.removeFromFolder(1L)
                 );
 
@@ -838,9 +842,9 @@ class NotesServiceImplTest {
         when(userRepository.findById(1L))
                 .thenReturn(Optional.of(user));
 
-        IllegalArgumentException exception =
+        InvalidCredentialsException exception =
                 assertThrows(
-                        IllegalArgumentException.class,
+                        InvalidCredentialsException.class,
                         () -> notesService.removeFromFolder(1L)
                 );
 
@@ -948,9 +952,9 @@ class NotesServiceImplTest {
         when(noteRepository.findById(1L))
                 .thenReturn(Optional.empty());
 
-        IllegalArgumentException exception =
+        NoteNotFoundException exception =
                 assertThrows(
-                        IllegalArgumentException.class,
+                        NoteNotFoundException.class,
                         () -> notesService.refreshSummary(1L, SummaryType.SHORT)
                 );
 

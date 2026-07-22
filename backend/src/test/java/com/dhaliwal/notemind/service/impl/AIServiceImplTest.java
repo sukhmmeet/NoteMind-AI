@@ -1,61 +1,226 @@
 package com.dhaliwal.notemind.service.impl;
 
 import com.dhaliwal.notemind.dto.AINoteResponse;
-import com.dhaliwal.notemind.service.AIService;
+import com.dhaliwal.notemind.entity.type.SummaryType;
+import com.dhaliwal.notemind.exception.AiServiceException;
+import com.dhaliwal.notemind.util.Util;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.http.*;
+import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.client.RestTemplate;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-import static com.dhaliwal.notemind.entity.type.SummaryType.*;
+import java.util.Map;
+
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
-@SpringBootTest
+@ExtendWith(MockitoExtension.class)
 class AIServiceImplTest {
 
-    @Autowired
-    AIService aiService;
+    @Mock
+    private Util util;
 
-    @Test
-    void getSummaryFromTextGenAI() {
-        // This method of AIService is not used
+    private ObjectMapper objectMapper = new ObjectMapper();
+
+    @Mock
+    private RestTemplate restTemplate;
+
+    @InjectMocks
+    private AIServiceImpl aiService;
+
+    @BeforeEach
+    void setUp() {
+        objectMapper = new ObjectMapper();
+
+        aiService = new AIServiceImpl(util, objectMapper, restTemplate);
+
+        ReflectionTestUtils.setField(
+                aiService,
+                "openRouterApiKey",
+                "test-api-key"
+        );
     }
 
     @Test
-    void getAIResponse() {
-        AINoteResponse response = aiService.getAIResponse("this is title", "make random summary", null);
-        System.out.println(response);
-        assert(response!=null);
+    void getAIResponse_ShouldReturnAiResponse() throws Exception {
+
+        String prompt = "prompt";
+
+        Map<String, Object> request =
+                Map.of("model", "model");
+
+        String response =
+                """
+                {
+                  "choices":[
+                    {
+                      "message":{
+                        "content":"{\\"summary\\":\\"Short Summary\\",\\"tags\\":[\\"java\\"]}"
+                      }
+                    }
+                  ]
+                }
+                """;
+
+        AINoteResponse aiResponse = new AINoteResponse();
+        aiResponse.setSummary("Short Summary");
+
+        when(util.getPrompt(any(), any(), any()))
+                .thenReturn(prompt);
+
+        when(util.buildRequest(prompt, null))
+                .thenReturn(request);
+
+        when(restTemplate.exchange(
+                anyString(),
+                eq(HttpMethod.POST),
+                any(HttpEntity.class),
+                eq(String.class)))
+                .thenReturn(ResponseEntity.ok(response));
+
+        AINoteResponse result =
+                aiService.getAIResponse(
+                        "Title",
+                        "Content",
+                        null,
+                        SummaryType.SHORT
+                );
+
+        assertEquals("Short Summary", result.getSummary());
+
+        verify(restTemplate).exchange(
+                anyString(),
+                eq(HttpMethod.POST),
+                any(HttpEntity.class),
+                eq(String.class)
+        );
     }
+
     @Test
-    void getDifferentTypeOfSummary(){
-        AINoteResponse shortSummary = aiService.getAIResponse(
-                "Introduction to Spring Boot",
-                "Spring Boot is a Java framework that simplifies backend development" +
-                        " by providing auto-configuration, embedded servers, and starter dependencies. " +
-                        "It helps developers build REST APIs quickly with minimal configuration.",
-                null,
-                SHORT
-        );
+    void getAIResponse_ShouldThrow_WhenResponseIsEmpty() {
 
-        AINoteResponse detailedSummary = aiService.getAIResponse(
-                "Machine Learning Basics",
-                "Machine learning is a branch of artificial intelligence that " +
-                        "enables computers to learn patterns from data. It includes " +
-                        "supervised, unsupervised, and reinforcement learning. Machine " +
-                        "learning is widely used in recommendation systems, fraud detection, " +
-                        "image recognition, natural language processing, and predictive analytics.",
-                null,
-                DETAILED
-        );
+        when(util.getPrompt(any(), any(), any()))
+                .thenReturn("prompt");
 
-        AINoteResponse bulletPointSummary = aiService.getAIResponse(
-                "Git Essentials",
-                "Git is a distributed version control system used to track changes in source code. It allows developers to create branches, merge changes, collaborate with teams, maintain project history, and manage software versions efficiently.",
-                null,
-                BULLET_POINTS
+        when(util.buildRequest(any(), any()))
+                .thenReturn(Map.of());
+
+        when(restTemplate.exchange(
+                anyString(),
+                eq(HttpMethod.POST),
+                any(HttpEntity.class),
+                eq(String.class)))
+                .thenReturn(ResponseEntity.ok(""));
+
+        assertThrows(
+                AiServiceException.class,
+                () -> aiService.getAIResponse(
+                        "Title",
+                        "Content",
+                        null,
+                        SummaryType.SHORT
+                )
         );
-        assert(shortSummary.getSummary()!=null);
-        assert(detailedSummary.getSummary()!=null);
-        assert(bulletPointSummary.getSummary()!=null);
+    }
+
+    @Test
+    void getAIResponse_ShouldThrow_WhenChoicesMissing() {
+
+        when(util.getPrompt(any(), any(), any()))
+                .thenReturn("prompt");
+
+        when(util.buildRequest(any(), any()))
+                .thenReturn(Map.of());
+
+        when(restTemplate.exchange(
+                anyString(),
+                eq(HttpMethod.POST),
+                any(HttpEntity.class),
+                eq(String.class)))
+                .thenReturn(ResponseEntity.ok("{}"));
+
+        assertThrows(
+                AiServiceException.class,
+                () -> aiService.getAIResponse(
+                        "Title",
+                        "Content",
+                        null,
+                        SummaryType.SHORT
+                )
+        );
+    }
+
+    @Test
+    void getAIResponse_ShouldThrow_WhenJsonIsInvalid() {
+
+        String response =
+                """
+                {
+                  "choices":[
+                    {
+                      "message":{
+                        "content":"invalid-json"
+                      }
+                    }
+                  ]
+                }
+                """;
+
+        when(util.getPrompt(any(), any(), any()))
+                .thenReturn("prompt");
+
+        when(util.buildRequest(any(), any()))
+                .thenReturn(Map.of());
+
+        when(restTemplate.exchange(
+                anyString(),
+                eq(HttpMethod.POST),
+                any(HttpEntity.class),
+                eq(String.class)))
+                .thenReturn(ResponseEntity.ok(response));
+
+        assertThrows(
+                AiServiceException.class,
+                () -> aiService.getAIResponse(
+                        "Title",
+                        "Content",
+                        null,
+                        SummaryType.SHORT
+                )
+        );
+    }
+
+    @Test
+    void getAIResponse_ShouldThrow_WhenRestTemplateFails() {
+
+        when(util.getPrompt(any(), any(), any()))
+                .thenReturn("prompt");
+
+        when(util.buildRequest(any(), any()))
+                .thenReturn(Map.of());
+
+        when(restTemplate.exchange(
+                anyString(),
+                eq(HttpMethod.POST),
+                any(HttpEntity.class),
+                eq(String.class)))
+                .thenThrow(new RuntimeException("API Error"));
+
+        assertThrows(
+                AiServiceException.class,
+                () -> aiService.getAIResponse(
+                        "Title",
+                        "Content",
+                        null,
+                        SummaryType.SHORT
+                )
+        );
     }
 }

@@ -1,6 +1,7 @@
 package com.dhaliwal.notemind.service.impl;
 
 import com.cloudinary.Cloudinary;
+import com.dhaliwal.notemind.exception.ImageUploadException;
 import com.dhaliwal.notemind.service.ImageManagerService;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -27,7 +28,7 @@ public class ImageManagerServiceImpl implements ImageManagerService {
             return uploadResult.get("secure_url").toString();
 
         } catch (IOException e) {
-            throw new RuntimeException("Image upload failed", e);
+            throw new ImageUploadException("Image upload failed", e);
         }
     }
 }

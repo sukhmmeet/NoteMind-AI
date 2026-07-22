@@ -7,6 +7,7 @@ import com.dhaliwal.notemind.dto.folder.request.FolderRequestDto;
 import com.dhaliwal.notemind.entity.Folder;
 import com.dhaliwal.notemind.entity.Note;
 import com.dhaliwal.notemind.entity.User;
+import com.dhaliwal.notemind.exception.*;
 import com.dhaliwal.notemind.mapper.FolderMapper;
 import com.dhaliwal.notemind.mapper.NoteMapper;
 import com.dhaliwal.notemind.repository.FolderRepository;
@@ -120,9 +121,9 @@ class FolderServiceImplTest {
 
         requestDto.setName("");
 
-        IllegalArgumentException exception =
+        InvalidFolderException exception =
                 assertThrows(
-                        IllegalArgumentException.class,
+                        InvalidFolderException.class,
                         () -> folderService.createFolder(requestDto)
                 );
 
@@ -140,9 +141,9 @@ class FolderServiceImplTest {
         when(folderRepository.findByName("Work"))
                 .thenReturn(Optional.of(folder));
 
-        IllegalArgumentException exception =
+        FolderAlreadyExistsException exception =
                 assertThrows(
-                        IllegalArgumentException.class,
+                        FolderAlreadyExistsException.class,
                         () -> folderService.createFolder(requestDto)
                 );
 
@@ -166,9 +167,9 @@ class FolderServiceImplTest {
         when(userRepository.findById(1L))
                 .thenReturn(Optional.empty());
 
-        IllegalArgumentException exception =
+        UserNotFoundException exception =
                 assertThrows(
-                        IllegalArgumentException.class,
+                        UserNotFoundException.class,
                         () -> folderService.createFolder(requestDto)
                 );
 
@@ -375,9 +376,9 @@ class FolderServiceImplTest {
         FolderRequestDto dto = new FolderRequestDto();
         dto.setName("");
 
-        IllegalArgumentException exception =
+        InvalidFolderException exception =
                 assertThrows(
-                        IllegalArgumentException.class,
+                        InvalidFolderException.class,
                         () -> folderService.updateFolder(10L, dto)
                 );
 
@@ -398,9 +399,9 @@ class FolderServiceImplTest {
         when(folderRepository.findById(10L))
                 .thenReturn(Optional.empty());
 
-        IllegalArgumentException exception =
+        FolderNotFoundException exception =
                 assertThrows(
-                        IllegalArgumentException.class,
+                        FolderNotFoundException.class,
                         () -> folderService.updateFolder(10L, dto)
                 );
 
@@ -425,9 +426,9 @@ class FolderServiceImplTest {
 
         when(securityUtils.getUserId()).thenReturn(1L);
 
-        IllegalStateException exception =
+        InvalidCredentialsException exception =
                 assertThrows(
-                        IllegalStateException.class,
+                        InvalidCredentialsException.class,
                         () -> folderService.updateFolder(10L, dto)
                 );
 
@@ -455,9 +456,9 @@ class FolderServiceImplTest {
         when(folderRepository.findById(10L))
                 .thenReturn(Optional.empty());
 
-        IllegalArgumentException exception =
+        FolderNotFoundException exception =
                 assertThrows(
-                        IllegalArgumentException.class,
+                        FolderNotFoundException.class,
                         () -> folderService.deleteFolder(10L)
                 );
 
@@ -480,9 +481,9 @@ class FolderServiceImplTest {
 
         when(securityUtils.getUserId()).thenReturn(1L);
 
-        IllegalStateException exception =
+        InvalidCredentialsException exception =
                 assertThrows(
-                        IllegalStateException.class,
+                        InvalidCredentialsException.class,
                         () -> folderService.deleteFolder(10L)
                 );
 
@@ -517,9 +518,9 @@ class FolderServiceImplTest {
         when(folderRepository.findById(10L))
                 .thenReturn(Optional.empty());
 
-        IllegalArgumentException exception =
+        FolderNotFoundException exception =
                 assertThrows(
-                        IllegalArgumentException.class,
+                        FolderNotFoundException.class,
                         () -> folderService.getFolderById(10L)
                 );
 
@@ -540,9 +541,9 @@ class FolderServiceImplTest {
 
         when(securityUtils.getUserId()).thenReturn(1L);
 
-        IllegalStateException exception =
+        InvalidCredentialsException exception =
                 assertThrows(
-                        IllegalStateException.class,
+                        InvalidCredentialsException.class,
                         () -> folderService.getFolderById(10L)
                 );
 

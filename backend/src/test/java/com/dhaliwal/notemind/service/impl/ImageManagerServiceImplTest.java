@@ -2,6 +2,7 @@ package com.dhaliwal.notemind.service.impl;
 
 import com.cloudinary.Cloudinary;
 import com.cloudinary.Uploader;
+import com.dhaliwal.notemind.exception.ImageUploadException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -75,8 +76,8 @@ class ImageManagerServiceImplTest {
         when(uploader.upload(any(byte[].class), anyMap()))
                 .thenThrow(new IOException("Upload failed"));
 
-        RuntimeException exception = assertThrows(
-                RuntimeException.class,
+        ImageUploadException exception = assertThrows(
+                ImageUploadException.class,
                 () -> imageManagerService.uploadAndGetUrl(file)
         );
 
