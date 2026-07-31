@@ -88,9 +88,11 @@ public class FlashCardServiceImpl implements FlashCardService {
         User user = currentUserProvider.getCurrentUser();
         FlashCard flashCard = flashCardRepository.findById(flashCardId)
                 .orElseThrow(() -> new FlashCardNotFoundException("FlashCard not found"));
-        if(!Objects.equals(user.getId(), flashCard.getNote().getId())){
+
+        if (!Objects.equals(user.getId(), flashCard.getNote().getUser().getId())) {
             throw new InvalidCredentialsException("Unauthorized access");
         }
+
         return flashCardMapper.toDto(flashCard);
     }
 
@@ -168,7 +170,7 @@ public class FlashCardServiceImpl implements FlashCardService {
             throw new InvalidCredentialsException("Unauthorized access");
         }
 
-        note.setFlashCards(null);
+        note.getFlashCards().clear();
         noteRepository.save(note);
     }
 
@@ -184,7 +186,7 @@ public class FlashCardServiceImpl implements FlashCardService {
         }
 
         flashCardRepository.deleteAll(note.getFlashCards());
-        note.setFlashCards(null);
+        note.getFlashCards().clear();
 
         AIFlashCardResponse response = aiService.getAIFlashCardResponse(
                 note.getTitle(),
