@@ -95,4 +95,12 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.NO_CONTENT)
                 .body(ex.getMessage());
     }
+    @ExceptionHandler(FlashCardNotFoundException.class)
+    public ResponseEntity<String> handleFlashCardNotFound(
+            FlashCardNotFoundException ex
+    ){
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(ex.getMessage());
+    }
 }
