@@ -161,7 +161,7 @@ public class FlashCardServiceImpl implements FlashCardService {
 
     @Override
     @Transactional
-    public void clearAllFlashCardsOfNote(Long noteId) {
+    public void deleteAllFlashCardsOfNote(Long noteId) {
         User user = currentUserProvider.getCurrentUser();
         Note note =  noteRepository.findById(noteId)
                 .orElseThrow(() -> new NoteNotFoundException("Note not found"));

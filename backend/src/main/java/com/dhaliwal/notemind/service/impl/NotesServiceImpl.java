@@ -23,6 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -200,7 +201,7 @@ public class NotesServiceImpl implements NotesService {
 
     @Override
     @Transactional
-    @CacheEvict(cacheNames = CACHE_NAME, key = "#id")
+    @CachePut(cacheNames = CACHE_NAME, key = "#id")
     public NoteDto updateNote(Long id, NoteDto noteDto, MultipartFile image) {
         if(!validateNoteDto(noteDto)) {
             throw new InvalidNoteException(
@@ -237,7 +238,11 @@ public class NotesServiceImpl implements NotesService {
     }
 
     @Override
-    @CacheEvict(cacheNames = CACHE_NAME, key = "#id")
+    @Caching(evict = {
+            @CacheEvict(cacheNames = "notes", key = "#id"),
+            @CacheEvict(cacheNames = "folderNotes", allEntries = true),
+            @CacheEvict(cacheNames = "userNotes", allEntries = true)
+    })
     public void deleteNote(Long id) {
         User user = getCurrentUser();
         Note note = noteRepository.findById(id).orElseThrow(() -> new NoteNotFoundException("Not find note of this id:" + id));

@@ -38,10 +38,12 @@ public class NoteController {
     public ResponseEntity<List<NoteDto>> getAllNotes(){
         return ResponseEntity.ok(notesService.getAllNotes());
     }
+
     @GetMapping("/{id}")
     public ResponseEntity<NoteDto> getNoteById(@PathVariable long id){
         return ResponseEntity.ok(notesService.getNoteById(id));
     }
+
     @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<NoteDto> updateNote(
             @PathVariable long id,

@@ -408,6 +408,7 @@ class FlashCardServiceImplTest {
         verify(flashCardRepository).save(flashCard);
     }
 
+
     @Test
     void shouldThrowWhenUpdateFlashCardNotFound() {
 
@@ -602,7 +603,7 @@ class FlashCardServiceImplTest {
         when(currentUserProvider.getCurrentUser()).thenReturn(user);
         when(noteRepository.findById(1L)).thenReturn(Optional.of(note));
 
-        flashCardService.clearAllFlashCardsOfNote(1L);
+        flashCardService.deleteAllFlashCardsOfNote(1L);
 
         verify(noteRepository).save(note);
     }
@@ -617,7 +618,7 @@ class FlashCardServiceImplTest {
 
         assertThrows(
                 NoteNotFoundException.class,
-                () -> flashCardService.clearAllFlashCardsOfNote(1L)
+                () -> flashCardService.deleteAllFlashCardsOfNote(1L)
         );
     }
 
@@ -637,7 +638,7 @@ class FlashCardServiceImplTest {
 
         assertThrows(
                 InvalidCredentialsException.class,
-                () -> flashCardService.clearAllFlashCardsOfNote(1L)
+                () -> flashCardService.deleteAllFlashCardsOfNote(1L)
         );
     }
 

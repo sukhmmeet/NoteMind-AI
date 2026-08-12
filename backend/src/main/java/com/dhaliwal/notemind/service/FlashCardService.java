@@ -35,7 +35,7 @@ public interface FlashCardService {
             Long flashCardId
     );
 
-    void clearAllFlashCardsOfNote(
+    void deleteAllFlashCardsOfNote(
             Long noteId
     );
 
