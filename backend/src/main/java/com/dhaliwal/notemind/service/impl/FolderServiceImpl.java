@@ -17,6 +17,10 @@ import com.dhaliwal.notemind.service.FolderService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -32,9 +36,22 @@ public class FolderServiceImpl implements FolderService {
     private final FolderMapper folderMapper;
     private final UserRepository userRepository;
     private final SecurityUtils securityUtils;
+    private static final String FOLDERS_CACHE = "folders";
+    private static final String USER_FOLDERS_WITHOUT_NOTES_CACHE = "userFoldersWithoutNotes";
+    private static final String USER_FOLDERS_WITH_NOTES_CACHE = "userFoldersWithNotes";
 
     @Override
     @Transactional
+    @Caching(
+            put = @CachePut(
+                    cacheNames = FOLDERS_CACHE,
+                    key = "#result.id + ':' + #root.target.securityUtils.getUserId()"
+            ),
+            evict = {
+                    @CacheEvict(cacheNames = USER_FOLDERS_WITHOUT_NOTES_CACHE, key = "#root.target.securityUtils.getUserId()"),
+                    @CacheEvict(cacheNames = USER_FOLDERS_WITH_NOTES_CACHE, key = "#root.target.securityUtils.getUserId()")
+            }
+    )
     public FolderDtoWithoutNotes createFolder(FolderRequestDto  folderRequestDto) {
         if (folderRequestDto.getName().isEmpty()) {
             throw new InvalidFolderException("Folder name cannot be empty");
@@ -55,6 +72,10 @@ public class FolderServiceImpl implements FolderService {
     }
 
     @Override
+    @Cacheable(
+            cacheNames = USER_FOLDERS_WITHOUT_NOTES_CACHE,
+            key = "#root.target.securityUtils.getUserId()"
+    )
     public List<FolderDtoWithoutNotes> GetAllFoldersWithoutNotes() {
         Long userId =  securityUtils.getUserId();
 
@@ -63,6 +84,10 @@ public class FolderServiceImpl implements FolderService {
     }
 
     @Override
+    @Cacheable(
+            cacheNames = USER_FOLDERS_WITH_NOTES_CACHE,
+            key = "#root.target.securityUtils.getUserId()"
+    )
     public List<FolderDto>  GetAllFoldersWithNotes() {
         Long userId =  securityUtils.getUserId();
 
@@ -82,6 +107,16 @@ public class FolderServiceImpl implements FolderService {
 
     @Override
     @Transactional
+    @Caching(
+            put = @CachePut(
+                    cacheNames = FOLDERS_CACHE,
+                    key = "#id + ':' + #root.target.securityUtils.getUserId()"
+            ),
+            evict = {
+                    @CacheEvict(cacheNames = USER_FOLDERS_WITHOUT_NOTES_CACHE, key = "#root.target.securityUtils.getUserId()"),
+                    @CacheEvict(cacheNames = USER_FOLDERS_WITH_NOTES_CACHE, key = "#root.target.securityUtils.getUserId()")
+            }
+    )
     public FolderDtoWithoutNotes updateFolder(Long id, FolderRequestDto folderRequestDto) {
         if (folderRequestDto.getName().isEmpty()) {
             throw new InvalidFolderException("Folder name cannot be empty");
@@ -100,6 +135,11 @@ public class FolderServiceImpl implements FolderService {
 
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(cacheNames = FOLDERS_CACHE, key = "#folderId + ':' + #root.target.securityUtils.getUserId()"),
+            @CacheEvict(cacheNames = USER_FOLDERS_WITHOUT_NOTES_CACHE, key = "#root.target.securityUtils.getUserId()"),
+            @CacheEvict(cacheNames = USER_FOLDERS_WITH_NOTES_CACHE, key = "#root.target.securityUtils.getUserId()")
+    })
     public void deleteFolder(Long folderId) {
         Folder folder = folderRepository.findById(folderId).orElseThrow(() -> new FolderNotFoundException("Folder not found"));
 
@@ -112,6 +152,10 @@ public class FolderServiceImpl implements FolderService {
     }
 
     @Override
+    @Cacheable(
+            cacheNames = FOLDERS_CACHE,
+            key = "#id + ':' + #root.target.securityUtils.getUserId()"
+    )
     public FolderDtoWithoutNotes getFolderById(Long id) {
         Folder folder = folderRepository.findById(id).orElseThrow(() -> new FolderNotFoundException("Folder not found"));
 

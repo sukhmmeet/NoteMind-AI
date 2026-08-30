@@ -14,6 +14,10 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.time.Duration;
+import java.util.HashMap;
+import java.util.Map;
+
 @Configuration
 @EnableCaching
 public class RedisConfig {
@@ -29,6 +33,7 @@ public class RedisConfig {
                 new JacksonJsonRedisSerializer<>(objectMapper, Object.class);
 
         return RedisCacheConfiguration.defaultCacheConfig()
+                .entryTtl(Duration.ofMinutes(60))
                 .serializeKeysWith(
                         RedisSerializationContext.SerializationPair
                                 .fromSerializer(new StringRedisSerializer()))
@@ -42,8 +47,14 @@ public class RedisConfig {
             RedisConnectionFactory connectionFactory,
             RedisCacheConfiguration configuration) {
 
+        Map<String, RedisCacheConfiguration> cacheConfigurations = new HashMap<>();
+        // Specify custom TTLs here if needed
+        cacheConfigurations.put("notes", configuration.entryTtl(Duration.ofMinutes(120)));
+        cacheConfigurations.put("flashCards", configuration.entryTtl(Duration.ofMinutes(120)));
+
         return RedisCacheManager.builder(connectionFactory)
                 .cacheDefaults(configuration)
+                .withInitialCacheConfigurations(cacheConfigurations)
                 .build();
     }
 

@@ -31,7 +31,7 @@ public interface FlashCardService {
             FlashCardRequestDto request
     );
 
-    void deleteFlashCard(
+    Long deleteFlashCard(
             Long flashCardId
     );
 

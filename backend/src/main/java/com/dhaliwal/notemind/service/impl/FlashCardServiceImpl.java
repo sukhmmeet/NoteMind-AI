@@ -17,6 +17,10 @@ import com.dhaliwal.notemind.service.AIService;
 import com.dhaliwal.notemind.service.FlashCardService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -32,9 +36,17 @@ public class FlashCardServiceImpl implements FlashCardService {
     private final NoteRepository noteRepository;
     private final AIService aiService;
     private final FlashCardMapper flashCardMapper;
+    private static final String FLASH_CARD_CACHE = "flashCards";
+    private static final String NOTE_FLASH_CARDS_CACHE = "noteFlashCards";
 
     @Override
     @Transactional
+    @Caching(
+            put = @CachePut(
+                    cacheNames = NOTE_FLASH_CARDS_CACHE,
+                    key = "#noteId + ':' + #root.target.currentUserProvider.getCurrentUser().id"
+            )
+    )
     public List<FlashCardDto> generateFlashCards(Long noteId, int count) {
         User user = currentUserProvider.getCurrentUser();
 
@@ -68,6 +80,10 @@ public class FlashCardServiceImpl implements FlashCardService {
     }
 
     @Override
+    @Cacheable(
+            cacheNames = NOTE_FLASH_CARDS_CACHE,
+            key = "#noteId + ':' + #root.target.currentUserProvider.getCurrentUser().id"
+    )
     public List<FlashCardDto> getFlashCardsByNote(Long noteId) {
         User user = currentUserProvider.getCurrentUser();
 
@@ -84,6 +100,10 @@ public class FlashCardServiceImpl implements FlashCardService {
 
     @Override
     @Transactional
+    @Cacheable(
+            cacheNames = FLASH_CARD_CACHE,
+            key = "#flashCardId + ':' + #root.target.currentUserProvider.getCurrentUser().id"
+    )
     public FlashCardDto getFlashCard(Long flashCardId) {
         User user = currentUserProvider.getCurrentUser();
         FlashCard flashCard = flashCardRepository.findById(flashCardId)
@@ -98,6 +118,16 @@ public class FlashCardServiceImpl implements FlashCardService {
 
     @Override
     @Transactional
+    @Caching(
+            put = @CachePut(
+                    cacheNames = FLASH_CARD_CACHE,
+                    key = "#result.id + ':' + #root.target.currentUserProvider.getCurrentUser().id"
+            ),
+            evict = @CacheEvict(
+                    cacheNames = NOTE_FLASH_CARDS_CACHE,
+                    key = "#noteId + ':' + #root.target.currentUserProvider.getCurrentUser().id"
+            )
+    )
     public FlashCardDto createFlashCard(Long noteId, FlashCardRequestDto request) {
         User user = currentUserProvider.getCurrentUser();
         Note note = noteRepository.findById(noteId)
@@ -121,6 +151,16 @@ public class FlashCardServiceImpl implements FlashCardService {
 
     @Override
     @Transactional
+    @Caching(
+            put = @CachePut(
+                    cacheNames = FLASH_CARD_CACHE,
+                    key = "#flashCardId + ':' + #root.target.currentUserProvider.getCurrentUser().id"
+            ),
+            evict = @CacheEvict(
+                    cacheNames = NOTE_FLASH_CARDS_CACHE,
+                    key = "#result.noteId + ':' + #root.target.currentUserProvider.getCurrentUser().id"
+            )
+    )
     public FlashCardDto updateFlashCard(Long flashCardId, FlashCardRequestDto request) {
         User user = currentUserProvider.getCurrentUser();
 
@@ -146,7 +186,17 @@ public class FlashCardServiceImpl implements FlashCardService {
 
     @Override
     @Transactional
-    public void deleteFlashCard(Long flashCardId) {
+    @Caching(evict = {
+            @CacheEvict(
+                    cacheNames = FLASH_CARD_CACHE,
+                    key = "#flashCardId + ':' + #root.target.currentUserProvider.getCurrentUser().id"
+            ),
+            @CacheEvict(
+                    cacheNames = NOTE_FLASH_CARDS_CACHE,
+                    key = "#result + ':' + #root.target.currentUserProvider.getCurrentUser().id"
+            )
+    })
+    public Long deleteFlashCard(Long flashCardId) {
         User user = currentUserProvider.getCurrentUser();
 
         FlashCard flashCard = flashCardRepository.findById(flashCardId)
@@ -156,11 +206,18 @@ public class FlashCardServiceImpl implements FlashCardService {
             throw new InvalidCredentialsException("Unauthorized access");
         }
 
+        Long noteId = flashCard.getNote().getId();
         flashCardRepository.delete(flashCard);
+        
+        return noteId;
     }
 
     @Override
     @Transactional
+    @CacheEvict(
+            cacheNames = NOTE_FLASH_CARDS_CACHE,
+            key = "#noteId + ':' + #root.target.currentUserProvider.getCurrentUser().id"
+    )
     public void deleteAllFlashCardsOfNote(Long noteId) {
         User user = currentUserProvider.getCurrentUser();
         Note note =  noteRepository.findById(noteId)
@@ -176,6 +233,10 @@ public class FlashCardServiceImpl implements FlashCardService {
 
     @Override
     @Transactional
+    @CachePut(
+            cacheNames = NOTE_FLASH_CARDS_CACHE,
+            key = "#noteId + ':' + #root.target.currentUserProvider.getCurrentUser().id"
+    )
     public List<FlashCardDto> regenerateFlashCards(Long noteId, int count) {
         User user = currentUserProvider.getCurrentUser();
         Note note =  noteRepository.findById(noteId)

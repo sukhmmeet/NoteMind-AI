@@ -1,5 +1,6 @@
 package com.dhaliwal.notemind.controller;
 
+import com.dhaliwal.notemind.dto.ApiResponse;
 import com.dhaliwal.notemind.dto.NoteDto;
 import com.dhaliwal.notemind.entity.type.SummaryType;
 import com.dhaliwal.notemind.service.NotesService;
@@ -8,6 +9,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
 import java.util.List;
 
 @RestController
@@ -22,55 +24,48 @@ public class NoteController {
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> createNote(
+    public ResponseEntity<ApiResponse<NoteDto>> createNote(
             @RequestPart("note") String noteJson,
             @RequestPart(value = "image", required = false) MultipartFile image
     ) throws Exception {
-
-        ObjectMapper mapper = new ObjectMapper();
         NoteDto noteDto = objectMapper.readValue(noteJson, NoteDto.class);
-
         NoteDto savedNoteDto = notesService.createNote(noteDto, image);
-        return ResponseEntity.ok(savedNoteDto);
+        return ResponseEntity.ok(ApiResponse.success("Note created successfully", savedNoteDto));
     }
 
     @GetMapping
-    public ResponseEntity<List<NoteDto>> getAllNotes(){
-        return ResponseEntity.ok(notesService.getAllNotes());
+    public ResponseEntity<ApiResponse<List<NoteDto>>> getAllNotes() {
+        return ResponseEntity.ok(ApiResponse.success(notesService.getAllNotes()));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<NoteDto> getNoteById(@PathVariable long id){
-        return ResponseEntity.ok(notesService.getNoteById(id));
+    public ResponseEntity<ApiResponse<NoteDto>> getNoteById(@PathVariable long id) {
+        return ResponseEntity.ok(ApiResponse.success(notesService.getNoteById(id)));
     }
 
     @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<NoteDto> updateNote(
+    public ResponseEntity<ApiResponse<NoteDto>> updateNote(
             @PathVariable long id,
             @RequestPart("note") String noteJson,
             @RequestPart(value = "image", required = false) MultipartFile image
     ) throws Exception {
-
         NoteDto noteDto = objectMapper.readValue(noteJson, NoteDto.class);
-        return ResponseEntity.ok(notesService.updateNote(id, noteDto, image));
+        return ResponseEntity.ok(ApiResponse.success("Note updated successfully", notesService.updateNote(id, noteDto, image)));
     }
-    @DeleteMapping("/{id}")
-    public ResponseEntity<String> deleteNote(@PathVariable long id){
-        notesService.deleteNote(id);
-        return ResponseEntity.ok("Deleted");
-    }
-    @GetMapping("/test")
-    public ResponseEntity<String> testAI(){
 
-        return ResponseEntity.ok("");
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Void>> deleteNote(@PathVariable long id) {
+        notesService.deleteNote(id);
+        return ResponseEntity.ok(ApiResponse.success("Note deleted successfully"));
     }
+
     @GetMapping("/search")
-    public List<NoteDto> search(@RequestParam String query) {
-        return notesService.searchNotes(query);
+    public ResponseEntity<ApiResponse<List<NoteDto>>> search(@RequestParam String query) {
+        return ResponseEntity.ok(ApiResponse.success(notesService.searchNotes(query)));
     }
 
     @GetMapping("/refresh-summary/{id}")
-    public ResponseEntity<NoteDto> refreshSummary(@PathVariable long id, @RequestParam SummaryType type) {
-        return ResponseEntity.ok(notesService.refreshSummary(id, type));
+    public ResponseEntity<ApiResponse<NoteDto>> refreshSummary(@PathVariable long id, @RequestParam SummaryType type) {
+        return ResponseEntity.ok(ApiResponse.success("Summary refreshed successfully", notesService.refreshSummary(id, type)));
     }
 }
