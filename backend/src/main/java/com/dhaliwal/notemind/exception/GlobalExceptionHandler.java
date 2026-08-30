@@ -1,5 +1,6 @@
 package com.dhaliwal.notemind.exception;
 
+import com.dhaliwal.notemind.dto.ApiResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -13,10 +14,10 @@ public class GlobalExceptionHandler {
             UsernameAlreadyExistsException.class,
             FolderAlreadyExistsException.class
     })
-    public ResponseEntity<String> handleConflict(RuntimeException ex) {
+    public ResponseEntity<ApiResponse<Void>> handleConflict(RuntimeException ex) {
         return ResponseEntity
                 .status(HttpStatus.CONFLICT)
-                .body(ex.getMessage());
+                .body(ApiResponse.error(ex.getMessage()));
     }
 
     @ExceptionHandler({
@@ -24,75 +25,67 @@ public class GlobalExceptionHandler {
             RefreshTokenExpiredException.class,
             InvalidCredentialsException.class
     })
-    public ResponseEntity<String> handleUnauthorized(RuntimeException ex) {
+    public ResponseEntity<ApiResponse<Void>> handleUnauthorized(RuntimeException ex) {
         return ResponseEntity
                 .status(HttpStatus.UNAUTHORIZED)
-                .body(ex.getMessage());
+                .body(ApiResponse.error(ex.getMessage()));
     }
 
     @ExceptionHandler({
             UsernameNotFoundException.class,
             UserNotFoundException.class,
             NoteNotFoundException.class,
-            FolderNotFoundException.class
+            FolderNotFoundException.class,
+            FlashCardNotFoundException.class
     })
-    public ResponseEntity<String> handleNotFound(RuntimeException ex) {
+    public ResponseEntity<ApiResponse<Void>> handleNotFound(RuntimeException ex) {
         return ResponseEntity
                 .status(HttpStatus.NOT_FOUND)
-                .body(ex.getMessage());
+                .body(ApiResponse.error(ex.getMessage()));
     }
 
     @ExceptionHandler({
             InvalidNoteException.class,
             InvalidFolderException.class
     })
-    public ResponseEntity<String> handleBadRequest(RuntimeException ex) {
+    public ResponseEntity<ApiResponse<Void>> handleBadRequest(RuntimeException ex) {
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
-                .body(ex.getMessage());
+                .body(ApiResponse.error(ex.getMessage()));
+    }
+
+    @ExceptionHandler(SearchTermIsEmptyException.class)
+    public ResponseEntity<ApiResponse<Void>> handleSearchTermIsEmpty(SearchTermIsEmptyException ex) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(ex.getMessage()));
     }
 
     @ExceptionHandler(UserNotLoggedInException.class)
-    public ResponseEntity<String> handleUserNotLoggedIn(
-            UserNotLoggedInException ex) {
-
+    public ResponseEntity<ApiResponse<Void>> handleUserNotLoggedIn(UserNotLoggedInException ex) {
         return ResponseEntity
                 .status(HttpStatus.UNAUTHORIZED)
-                .body(ex.getMessage());
+                .body(ApiResponse.error(ex.getMessage()));
     }
 
     @ExceptionHandler(ImageUploadException.class)
-    public ResponseEntity<String> handleImageUpload(
-            ImageUploadException ex) {
-
+    public ResponseEntity<ApiResponse<Void>> handleImageUpload(ImageUploadException ex) {
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ex.getMessage());
+                .body(ApiResponse.error(ex.getMessage()));
     }
 
     @ExceptionHandler(AiServiceException.class)
-    public ResponseEntity<String> handleAiService(
-            AiServiceException ex) {
-
+    public ResponseEntity<ApiResponse<Void>> handleAiService(AiServiceException ex) {
         return ResponseEntity
                 .status(HttpStatus.BAD_GATEWAY)
-                .body(ex.getMessage());
+                .body(ApiResponse.error(ex.getMessage()));
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<String> handleUnexpectedException(
-            Exception ex) {
-
+    public ResponseEntity<ApiResponse<Void>> handleUnexpectedException(Exception ex) {
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("An unexpected error occurred.");
-    }
-    @ExceptionHandler(SearchTermIsEmptyException.class)
-    public ResponseEntity<String> handleSearchTermIsEmpty(
-            SearchTermIsEmptyException ex
-    ){
-        return ResponseEntity
-                .status(HttpStatus.NO_CONTENT)
-                .body(ex.getMessage());
+                .body(ApiResponse.error("An unexpected error occurred."));
     }
 }

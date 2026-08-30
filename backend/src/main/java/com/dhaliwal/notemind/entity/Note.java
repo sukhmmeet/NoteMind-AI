@@ -6,6 +6,8 @@ import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -42,6 +44,14 @@ public class Note {
 
     @UpdateTimestamp
     private LocalDateTime updatedAt;
+
+    @Builder.Default
+    @OneToMany(
+            mappedBy = "note",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    private List<FlashCard> flashCards = new ArrayList<>();
 
     @Column(
             name = "search_vector",

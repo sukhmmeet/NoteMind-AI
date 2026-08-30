@@ -1,5 +1,6 @@
 package com.dhaliwal.notemind.controller;
 
+import com.dhaliwal.notemind.dto.ApiResponse;
 import com.dhaliwal.notemind.security.dto.AuthRequestDto;
 import com.dhaliwal.notemind.security.dto.AuthResponseDto;
 import com.dhaliwal.notemind.security.refresh.RefreshTokenService;
@@ -19,33 +20,27 @@ public class AuthController {
     private final RefreshTokenService refreshTokenService;
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponseDto> login(
+    public ResponseEntity<ApiResponse<AuthResponseDto>> login(
             @RequestBody AuthRequestDto authRequestDto) {
-
-        return ResponseEntity.ok(authService.login(authRequestDto));
+        return ResponseEntity.ok(ApiResponse.success("Login successful", authService.login(authRequestDto)));
     }
 
     @PostMapping("/signup")
-    public ResponseEntity<AuthResponseDto> signup(
+    public ResponseEntity<ApiResponse<AuthResponseDto>> signup(
             @RequestBody AuthRequestDto authRequestDto) {
-
-        return ResponseEntity.ok(authService.signup(authRequestDto));
+        return ResponseEntity.ok(ApiResponse.success("Signup successful", authService.signup(authRequestDto)));
     }
 
     @PostMapping("/refresh-token")
-    public ResponseEntity<RefreshResponseDto> refreshToken(
+    public ResponseEntity<ApiResponse<RefreshResponseDto>> refreshToken(
             @RequestBody RefreshRequestDto refreshRequestDto) {
-
-        return ResponseEntity.ok(
-                refreshTokenService.refreshToken(refreshRequestDto)
-        );
+        return ResponseEntity.ok(ApiResponse.success(refreshTokenService.refreshToken(refreshRequestDto)));
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(
+    public ResponseEntity<ApiResponse<Void>> logout(
             @RequestBody RefreshRequestDto refreshRequestDto) {
-
         refreshTokenService.logout(refreshRequestDto);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(ApiResponse.success("Logged out successfully"));
     }
 }

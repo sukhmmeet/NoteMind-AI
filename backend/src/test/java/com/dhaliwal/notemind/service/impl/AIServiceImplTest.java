@@ -1,6 +1,8 @@
 package com.dhaliwal.notemind.service.impl;
 
 import com.dhaliwal.notemind.dto.AINoteResponse;
+import com.dhaliwal.notemind.dto.flashCard.ai.AIFlashCardResponse;
+import com.dhaliwal.notemind.dto.flashCard.ai.Flashcard;
 import com.dhaliwal.notemind.entity.type.SummaryType;
 import com.dhaliwal.notemind.exception.AiServiceException;
 import com.dhaliwal.notemind.util.Util;
@@ -9,12 +11,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.http.*;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.client.RestTemplate;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -27,12 +28,11 @@ class AIServiceImplTest {
     @Mock
     private Util util;
 
-    private ObjectMapper objectMapper = new ObjectMapper();
-
     @Mock
     private RestTemplate restTemplate;
 
-    @InjectMocks
+    private ObjectMapper objectMapper;
+
     private AIServiceImpl aiService;
 
     @BeforeEach
@@ -40,12 +40,6 @@ class AIServiceImplTest {
         objectMapper = new ObjectMapper();
 
         aiService = new AIServiceImpl(util, objectMapper, restTemplate);
-
-        ReflectionTestUtils.setField(
-                aiService,
-                "openRouterApiKey",
-                "test-api-key"
-        );
     }
 
     @Test
@@ -72,7 +66,7 @@ class AIServiceImplTest {
         AINoteResponse aiResponse = new AINoteResponse();
         aiResponse.setSummary("Short Summary");
 
-        when(util.getPrompt(any(), any(), any()))
+        when(util.getPromptForNoteSummary(any(), any(), any()))
                 .thenReturn(prompt);
 
         when(util.buildRequest(prompt, null))
@@ -106,7 +100,7 @@ class AIServiceImplTest {
     @Test
     void getAIResponse_ShouldThrow_WhenResponseIsEmpty() {
 
-        when(util.getPrompt(any(), any(), any()))
+        when(util.getPromptForNoteSummary(any(), any(), any()))
                 .thenReturn("prompt");
 
         when(util.buildRequest(any(), any()))
@@ -133,7 +127,7 @@ class AIServiceImplTest {
     @Test
     void getAIResponse_ShouldThrow_WhenChoicesMissing() {
 
-        when(util.getPrompt(any(), any(), any()))
+        when(util.getPromptForNoteSummary(any(), any(), any()))
                 .thenReturn("prompt");
 
         when(util.buildRequest(any(), any()))
@@ -173,7 +167,7 @@ class AIServiceImplTest {
                 }
                 """;
 
-        when(util.getPrompt(any(), any(), any()))
+        when(util.getPromptForNoteSummary(any(), any(), any()))
                 .thenReturn("prompt");
 
         when(util.buildRequest(any(), any()))
@@ -200,7 +194,7 @@ class AIServiceImplTest {
     @Test
     void getAIResponse_ShouldThrow_WhenRestTemplateFails() {
 
-        when(util.getPrompt(any(), any(), any()))
+        when(util.getPromptForNoteSummary(any(), any(), any()))
                 .thenReturn("prompt");
 
         when(util.buildRequest(any(), any()))
@@ -223,4 +217,266 @@ class AIServiceImplTest {
                 )
         );
     }
+    @Test
+    void shouldThrowWhenResponseIsNull() {
+
+        when(util.getPromptForFlashCard(
+                anyString(),
+                anyString(),
+                anyInt()
+        )).thenReturn("prompt");
+
+        when(util.buildRequest(any(), any()))
+                .thenReturn(Map.of());
+
+        when(restTemplate.exchange(
+                anyString(),
+                eq(HttpMethod.POST),
+                any(HttpEntity.class),
+                eq(String.class)
+        )).thenReturn(ResponseEntity.ok(null));
+
+        assertThrows(
+                AiServiceException.class,
+                () -> aiService.getAIFlashCardResponse("t", "c", null, 1)
+        );
+    }
+    @Test
+    void shouldThrowWhenResponseIsEmpty() {
+
+        when(util.getPromptForFlashCard(
+                anyString(),
+                anyString(),
+                anyInt()
+        )).thenReturn("prompt");
+
+        when(util.buildRequest(any(), any()))
+                .thenReturn(Map.of());
+
+        when(restTemplate.exchange(
+                anyString(),
+                eq(HttpMethod.POST),
+                any(HttpEntity.class),
+                eq(String.class)
+        )).thenReturn(ResponseEntity.ok(""));
+
+        assertThrows(
+                AiServiceException.class,
+                () -> aiService.getAIFlashCardResponse("t", "c", null, 5)
+        );
+    }
+    @Test
+    void shouldThrowWhenChoicesMissing() {
+
+        String response = "{}";
+
+        when(util.getPromptForFlashCard(
+                anyString(),
+                anyString(),
+                anyInt()
+        )).thenReturn("prompt");
+
+        when(util.buildRequest(any(), any()))
+                .thenReturn(Map.of());
+
+        when(restTemplate.exchange(
+                anyString(),
+                eq(HttpMethod.POST),
+                any(HttpEntity.class),
+                eq(String.class)
+        )).thenReturn(ResponseEntity.ok(response));
+
+        assertThrows(
+                AiServiceException.class,
+                () -> aiService.getAIFlashCardResponse("t", "c", null, 5)
+        );
+    }
+
+    @Test
+    void shouldThrowWhenChoicesArrayEmpty() {
+
+        String response = """
+    {
+      "choices":[]
+    }
+    """;
+
+        when(util.getPromptForFlashCard(
+                anyString(),
+                anyString(),
+                anyInt()
+        )).thenReturn("prompt");
+
+        when(util.buildRequest(any(), any()))
+                .thenReturn(Map.of());
+
+        when(restTemplate.exchange(
+                anyString(),
+                eq(HttpMethod.POST),
+                any(HttpEntity.class),
+                eq(String.class)
+        )).thenReturn(ResponseEntity.ok(response));
+
+        assertThrows(
+                AiServiceException.class,
+                () -> aiService.getAIFlashCardResponse("t", "c", null, 5)
+        );
+    }
+    @Test
+    void shouldThrowWhenFlashCardJsonInvalid() {
+
+        String response = """
+    {
+      "choices":[
+        {
+          "message":{
+            "content":"invalid json"
+          }
+        }
+      ]
+    }
+    """;
+
+        when(util.getPromptForFlashCard(
+                anyString(),
+                anyString(),
+                anyInt()
+        )).thenReturn("prompt");
+
+        when(util.buildRequest(any(), any()))
+                .thenReturn(Map.of());
+
+        when(restTemplate.exchange(
+                anyString(),
+                eq(HttpMethod.POST),
+                any(HttpEntity.class),
+                eq(String.class)
+        )).thenReturn(ResponseEntity.ok(response));
+
+        assertThrows(
+                AiServiceException.class,
+                () -> aiService.getAIFlashCardResponse("t", "c", null, 5)
+        );
+    }
+    @Test
+    void shouldWrapRestTemplateException() {
+
+        when(util.getPromptForFlashCard(
+                anyString(),
+                anyString(),
+                anyInt()
+        )).thenReturn("prompt");
+
+        when(util.buildRequest(any(), any()))
+                .thenReturn(Map.of());
+
+        when(restTemplate.exchange(
+                anyString(),
+                eq(HttpMethod.POST),
+                any(HttpEntity.class),
+                eq(String.class)
+        )).thenThrow(new RuntimeException("Connection failed"));
+
+        assertThrows(
+                AiServiceException.class,
+                () -> aiService.getAIFlashCardResponse("t", "c", null, 5)
+        );
+    }
+    @Test
+    void shouldCleanUnicodeCharactersBeforeParsing() throws Exception {
+
+        String response = """
+        {
+          "choices":[
+            {
+              "message":{
+                "content":"🙂{\\"flashcards\\":[]}"
+              }
+            }
+          ]
+        }
+        """;
+
+        when(util.getPromptForFlashCard(
+                anyString(),
+                anyString(),
+                anyInt()
+        )).thenReturn("prompt");
+
+        when(util.buildRequest(any(), any()))
+                .thenReturn(Map.of());
+
+        when(restTemplate.exchange(
+                anyString(),
+                eq(HttpMethod.POST),
+                any(HttpEntity.class),
+                eq(String.class)
+        )).thenReturn(ResponseEntity.ok(response));
+
+        AIFlashCardResponse result =
+                aiService.getAIFlashCardResponse("t", "c", null, 5);
+
+        assertNotNull(result);
+        assertTrue(result.getFlashcards().isEmpty());
+    }
+    @Test
+    void shouldGenerateFlashCardsSuccessfully() {
+
+        String title = "Binary Search";
+        String content = "Binary Search works on sorted arrays.";
+        String imageUrl = null;
+
+        String prompt = "prompt";
+
+        Map<String, Object> request = Map.of();
+
+        String aiJson = """
+    {
+      "choices":[
+        {
+          "message":{
+            "content":"{\\"flashcards\\":[{\\"question\\":\\"Q1\\",\\"answer\\":\\"A1\\"}]}"
+          }
+        }
+      ]
+    }
+    """;
+
+        AIFlashCardResponse expected =
+                new AIFlashCardResponse(
+                        List.of(new Flashcard("Q1", "A1"))
+                );
+
+        when(util.getPromptForFlashCard(
+                anyString(),
+                anyString(),
+                anyInt()
+        )).thenReturn("prompt");
+
+        when(util.buildRequest(prompt, imageUrl))
+                .thenReturn(request);
+
+        when(restTemplate.exchange(
+                anyString(),
+                eq(HttpMethod.POST),
+                any(HttpEntity.class),
+                eq(String.class)
+        )).thenReturn(ResponseEntity.ok(aiJson));
+
+        AIFlashCardResponse result =
+                aiService.getAIFlashCardResponse(title, content, imageUrl, 5);
+
+        assertEquals(1, result.getFlashcards().size());
+
+        assertEquals(
+                expected.getFlashcards().getFirst().getQuestion(),
+                result.getFlashcards().getFirst().getQuestion()
+        );
+
+        assertEquals(
+                expected.getFlashcards().getFirst().getAnswer(),
+                result.getFlashcards().getFirst().getAnswer()
+        );
+    }
+
 }

@@ -10,7 +10,7 @@ import java.util.Map;
 
 @Configuration
 public class Util {
-    public String getPrompt(String title, String content) {
+    public String getPromptForNoteSummary(String title, String content) {
         return """
             You are an assistant that summarizes notes.
 
@@ -18,7 +18,7 @@ public class Util {
 
             Title: %s
             Content: %s
-
+    
             Instructions:
             - Generate a concise summary in 2-3 sentences.
             - Capture the key idea and important details.
@@ -34,7 +34,7 @@ public class Util {
             }
             """.formatted(title, content);
     }
-    public String getPrompt(String title, String content, SummaryType summaryType) {
+    public String getPromptForNoteSummary(String title, String content, SummaryType summaryType) {
 
         String summaryInstruction = switch (summaryType) {
             case SHORT -> """
@@ -83,9 +83,57 @@ public class Util {
             }
             """.formatted(title, content, summaryInstruction);
     }
+    public String getPromptForFlashCard(String title, String content, int count) {
+        String countString = String.valueOf(count);
+        return String.format("""
+                You are an expert teacher.
+                
+                Your task is to generate high-quality study flashcards using the provided note title, note content, and optional image.
+                
+                Instructions:
+                - Carefully analyze the note title.
+                - Carefully read the note content.
+                - If an image is provided, extract all useful educational information from it and combine it with the text.
+                - Do not ignore either the image or the text.
+                - Create flashcards that help a student memorize and understand the topic.
+                - Questions should be clear, concise, and focused on one concept.
+                - Answers should be accurate, brief, and complete.
+                - Avoid duplicate flashcards.
+                - Include important definitions, concepts, formulas, facts, comparisons, and processes whenever applicable.
+                - If the image contains diagrams, tables, handwritten notes, equations, or labels, incorporate that information into the flashcards.
+                - If the image contains no useful educational information, generate flashcards only from the text.
+                
+                Title:
+                %s
+                
+                Content:
+                %s
+                
+                Return ONLY valid JSON in the following format.
+                
+                {
+                  "flashcards": [
+                    {
+                      "question": "Question 1",
+                      "answer": "Answer 1"
+                    },
+                    {
+                      "question": "Question 2",
+                      "answer": "Answer 2"
+                    }
+                  ]
+                }
+                
+                Rules:
+                - Return only JSON.
+                - Do not use Markdown.
+                - Do not wrap the JSON in ``` blocks.
+                - Do not include explanations or extra text.
+                - Generate between %s flashcards depending on the amount of information available.
+                """, title, content, countString);
+    }
     public String chooseModel(String imageUrl) {
         if (imageUrl != null && !imageUrl.isEmpty()) {
-//            return "nvidia/nemotron-nano-12b-v2-vl:free";
             return "nex-agi/nex-n2-pro:free";
         } else {
             return "nvidia/nemotron-3-super-120b-a12b:free";

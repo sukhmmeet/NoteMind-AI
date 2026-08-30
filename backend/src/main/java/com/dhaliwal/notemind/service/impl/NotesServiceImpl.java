@@ -23,6 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -144,7 +145,13 @@ public class NotesServiceImpl implements NotesService {
 
     @Override
     @Transactional
-    @CachePut(cacheNames = CACHE_NAME, key = "#result.id")
+    @Caching(
+            put = @CachePut(cacheNames = CACHE_NAME, key = "#result.id + ':' + #result.userId"),
+            evict = {
+                    @CacheEvict(cacheNames = "userNotes", key = "#root.target.securityUtils.getUserId()"),
+                    @CacheEvict(cacheNames = "userFoldersWithNotes", key = "#root.target.securityUtils.getUserId()")
+            }
+    )
     public NoteDto createNote(NoteDto noteDto, MultipartFile image) {
         if(!validateNoteDto(noteDto)) {
             throw new InvalidNoteException(
@@ -178,6 +185,7 @@ public class NotesServiceImpl implements NotesService {
     }
 
     @Override
+    @Cacheable(cacheNames = "userNotes", key = "#root.target.securityUtils.getUserId()")
     public List<NoteDto> getAllNotes() {
         User user = getCurrentUser();
 
@@ -188,7 +196,7 @@ public class NotesServiceImpl implements NotesService {
     }
 
     @Override
-    @Cacheable(cacheNames = CACHE_NAME, key = "#id")
+    @Cacheable(cacheNames = CACHE_NAME, key = "#id + ':' + #root.target.securityUtils.getUserId()")
     public NoteDto getNoteById(Long id) {
         User user = getCurrentUser();
         Note note = noteRepository.findById(id).orElseThrow(() -> new NoteNotFoundException("Not find note of this id:" + id));
@@ -200,7 +208,13 @@ public class NotesServiceImpl implements NotesService {
 
     @Override
     @Transactional
-    @CacheEvict(cacheNames = CACHE_NAME, key = "#id")
+    @Caching(
+            put = @CachePut(cacheNames = CACHE_NAME, key = "#id + ':' + #root.target.securityUtils.getUserId()"),
+            evict = {
+                    @CacheEvict(cacheNames = "userNotes", key = "#root.target.securityUtils.getUserId()"),
+                    @CacheEvict(cacheNames = "userFoldersWithNotes", key = "#root.target.securityUtils.getUserId()")
+            }
+    )
     public NoteDto updateNote(Long id, NoteDto noteDto, MultipartFile image) {
         if(!validateNoteDto(noteDto)) {
             throw new InvalidNoteException(
@@ -237,7 +251,11 @@ public class NotesServiceImpl implements NotesService {
     }
 
     @Override
-    @CacheEvict(cacheNames = CACHE_NAME, key = "#id")
+    @Caching(evict = {
+            @CacheEvict(cacheNames = "notes", key = "#id + ':' + #root.target.securityUtils.getUserId()"),
+            @CacheEvict(cacheNames = "userNotes", key = "#root.target.securityUtils.getUserId()"),
+            @CacheEvict(cacheNames = "userFoldersWithNotes", key = "#root.target.securityUtils.getUserId()")
+    })
     public void deleteNote(Long id) {
         User user = getCurrentUser();
         Note note = noteRepository.findById(id).orElseThrow(() -> new NoteNotFoundException("Not find note of this id:" + id));
@@ -262,7 +280,11 @@ public class NotesServiceImpl implements NotesService {
 
     @Override
     @Transactional
-    @CacheEvict(cacheNames = CACHE_NAME, key = "#noteId")
+    @Caching(evict = {
+            @CacheEvict(cacheNames = CACHE_NAME, key = "#noteId + ':' + #root.target.securityUtils.getUserId()"),
+            @CacheEvict(cacheNames = "userNotes", key = "#root.target.securityUtils.getUserId()"),
+            @CacheEvict(cacheNames = "userFoldersWithNotes", key = "#root.target.securityUtils.getUserId()")
+    })
     public NoteDto moveToFolder(Long noteId, Long folderId) {
         Note note = noteRepository.findById(noteId).orElseThrow(() -> new NoteNotFoundException("Note not found"));
         Folder folder = folderRepository.findById(folderId).orElseThrow(() -> new FolderNotFoundException("Folder not found"));
@@ -282,7 +304,11 @@ public class NotesServiceImpl implements NotesService {
 
     @Override
     @Transactional
-    @CacheEvict(cacheNames = CACHE_NAME, key = "#noteId")
+    @Caching(evict = {
+            @CacheEvict(cacheNames = CACHE_NAME, key = "#noteId + ':' + #root.target.securityUtils.getUserId()"),
+            @CacheEvict(cacheNames = "userNotes", key = "#root.target.securityUtils.getUserId()"),
+            @CacheEvict(cacheNames = "userFoldersWithNotes", key = "#root.target.securityUtils.getUserId()")
+    })
     public NoteDto removeFromFolder(Long noteId) {
         Note note = noteRepository.findById(noteId).orElseThrow(() -> new NoteNotFoundException("Note not found"));
         User user =  getCurrentUser();
@@ -295,7 +321,13 @@ public class NotesServiceImpl implements NotesService {
 
     @Override
     @Transactional
-    @CacheEvict(cacheNames = CACHE_NAME, key = "#noteId")
+    @Caching(
+            put = @CachePut(cacheNames = CACHE_NAME, key = "#noteId + ':' + #root.target.securityUtils.getUserId()"),
+            evict = {
+                    @CacheEvict(cacheNames = "userNotes", key = "#root.target.securityUtils.getUserId()"),
+                    @CacheEvict(cacheNames = "userFoldersWithNotes", key = "#root.target.securityUtils.getUserId()")
+            }
+    )
     public NoteDto refreshSummary(Long noteId, SummaryType summaryType) {
         User user = getCurrentUser();
         Note note = noteRepository.findById(noteId).orElseThrow(() -> new NoteNotFoundException("Note not found"));

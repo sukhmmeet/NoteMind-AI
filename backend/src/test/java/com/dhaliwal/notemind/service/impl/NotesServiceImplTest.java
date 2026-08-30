@@ -2,6 +2,7 @@ package com.dhaliwal.notemind.service.impl;
 
 import com.dhaliwal.notemind.dto.AINoteResponse;
 import com.dhaliwal.notemind.dto.NoteDto;
+import com.dhaliwal.notemind.dto.flashCard.ai.AIFlashCardResponse;
 import com.dhaliwal.notemind.entity.Folder;
 import com.dhaliwal.notemind.entity.Note;
 import com.dhaliwal.notemind.entity.Tag;

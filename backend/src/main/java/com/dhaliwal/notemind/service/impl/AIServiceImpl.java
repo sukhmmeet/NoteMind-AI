@@ -1,6 +1,7 @@
 package com.dhaliwal.notemind.service.impl;
 
 import com.dhaliwal.notemind.dto.AINoteResponse;
+import com.dhaliwal.notemind.dto.flashCard.ai.AIFlashCardResponse;
 import com.dhaliwal.notemind.entity.type.SummaryType;
 import com.dhaliwal.notemind.exception.AiServiceException;
 import com.dhaliwal.notemind.service.AIService;
@@ -39,7 +40,7 @@ public class AIServiceImpl implements AIService {
     public String getSummaryFromTextGenAI(String title, String content) {
         System.setProperty("GOOGLE_API_KEY", genAIApiKey);
         Client client = Client.builder().apiKey(genAIApiKey).build();
-        String prompt = util.getPrompt(title, content);
+        String prompt = util.getPromptForNoteSummary(title, content);
         GenerateContentResponse response =
                 client.models.generateContent(
                         "gemini-3-flash-preview",
@@ -54,7 +55,7 @@ public class AIServiceImpl implements AIService {
 
     @Override
     public AINoteResponse getAIResponse(String title, String content, String imageUrl, SummaryType summaryType) {
-        String prompt = util.getPrompt(title, content, summaryType);
+        String prompt = util.getPromptForNoteSummary(title, content, summaryType);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(openRouterApiKey);
@@ -102,6 +103,63 @@ public class AIServiceImpl implements AIService {
 
         } catch (Exception e) {
             throw new AiServiceException("Failed to get summary from AI", e);
+        }
+    }
+
+    @Override
+    public AIFlashCardResponse getAIFlashCardResponse(
+            String title,
+            String content,
+            String imageUrl,
+            int count) {
+        String prompt = util.getPromptForFlashCard(title, content, count);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(openRouterApiKey);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        Map<String, Object> requestBody = util.buildRequest(prompt, imageUrl);
+
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+
+        try {
+            ResponseEntity<String> responseEntity = restTemplate.exchange(
+                    "https://openrouter.ai/api/v1/chat/completions",
+                    HttpMethod.POST,
+                    entity,
+                    String.class
+            );
+
+            String response = responseEntity.getBody();
+
+            if (response == null || response.isEmpty()) {
+                throw new AiServiceException("Empty response from AI");
+            }
+
+            JsonNode root = objectMapper.readTree(response);
+
+            JsonNode choices = root.path("choices");
+
+            if (!choices.isArray() || choices.isEmpty()) {
+                throw new AiServiceException("Invalid AI response: no choices");
+            }
+
+            String flashCardResponse = choices.get(0)
+                    .path("message")
+                    .path("content")
+                    .asText("");
+
+            flashCardResponse = flashCardResponse
+                    .replaceAll("[^\\x00-\\x7F]", "")
+                    .trim();
+
+            return objectMapper.readValue(
+                    flashCardResponse,
+                    AIFlashCardResponse.class
+            );
+
+        } catch (Exception e) {
+            throw new AiServiceException("Failed to get flashcards from AI", e);
         }
     }
 
