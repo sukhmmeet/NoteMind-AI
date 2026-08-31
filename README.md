@@ -1090,9 +1090,9 @@ When reporting bugs, include:
 
 **Sukhmeet Dhaliwal** — Computer Science Engineering Student
 
-- 📧 Email: sukhmmeet@gmail.com
+- 📧 Email: officialsukhmeet9@gmail.com
 - 🐙 GitHub: [@sukhmmeet](https://github.com/sukhmmeet)
-- 💼 LinkedIn: [Sukhmeet Dhaliwal](https://linkedin.com/in/sukhmmeet)
+- 💼 LinkedIn: [Sukhmeet Singh Dhaliwal](https://linkedin.com/in/sukhmmeet)
 
 ### Acknowledgments
 
