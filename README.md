@@ -17,25 +17,27 @@
 
 ---
 
+## 📋 Quick Navigation
+
+| Documentation | Purpose |
+|---|---|
+| [📖 Setup Guide](docs/SETUP.md) | Installation & environment configuration |
+| [🔗 API Reference](docs/API.md) | Complete API endpoints & curl examples |
+| [🛡️ Security](docs/SECURITY.md) | Authentication, best practices & configuration |
+| [🐛 Troubleshooting](docs/TROUBLESHOOTING.md) | Common issues & solutions |
+| [🤝 Contributing](docs/CONTRIBUTING.md) | Development guidelines & code style |
+
+---
+
 ## 📋 Table of Contents
 
 - [Overview](#-overview)
 - [Features](#-features)
 - [Architecture](#-architecture)
 - [Tech Stack](#%EF%B8%8F-tech-stack)
-- [Project Structure](#-project-structure)
-- [Getting Started](#-getting-started)
-  - [Prerequisites](#prerequisites)
-  - [Installation](#installation)
-  - [Environment Setup](#environment-setup)
-  - [Running Locally](#running-locally)
-  - [Docker Setup](#docker-setup)
-- [API Reference](#-api-reference)
-- [Database Schema](#-database-schema)
+- [Quick Start](#-quick-start)
+- [API Basics](#-api-basics)
 - [Testing](#-testing)
-- [Performance & Optimization](#-performance--optimization)
-- [Security Best Practices](#-security-best-practices)
-- [Troubleshooting](#-troubleshooting)
 - [Contributing](#-contributing)
 - [Roadmap](#-roadmap)
 - [Author](#-author)
@@ -132,52 +134,23 @@ Client uploads image
 
 ## 🏗 Architecture
 
+The project follows a **layered 3-tier architecture**:
+
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                        Client                               │
-│               (Android App / API Consumer)                  │
-└──────────────────────────┬──────────────────────────────────┘
-                           │  HTTPS
-                           ▼
-┌─────────────────────────────────────────────────────────────┐
-│                  Spring Boot REST API                       │
-│                   /api/v1/*                                  │
-│                                                             │
-│  ┌─────────────┐  ┌──────────────┐  ┌────────────────────┐ │
-│  │ Auth        │  │ Notes        │  │ FlashCards         │ │
-│  │ Controller  │  │ Controller   │  │ Controller         │ │
-│  └──────┬──────┘  └──────┬───────┘  └────────┬───────────┘ │
-│         │                │                    │             │
-│  ┌──────┴──────┐  ┌──────┴───────┐  ┌────────┴───────────┐ │
-│  │ AuthService │  │ NotesService │  │ FlashCardService   │ │
-│  │ JwtService  │  │ AIService    │  │ AIService          │ │
-│  │ RefreshToken│  │ ImageManager │  │                    │ │
-│  └──────┬──────┘  └──────┬───────┘  └────────┬───────────┘ │
-│         │                │                    │             │
-│  ┌──────┴────────────────┴────────────────────┴───────────┐ │
-│  │              Spring Data JPA Repositories              │ │
-│  └────────────────────────┬───────────────────────────────┘ │
-└───────────────────────────┼─────────────────────────────────┘
-                            │
-          ┌─────────────────┼──────────────────┐
-          ▼                 ▼                  ▼
-   ┌────────────┐   ┌─────────────┐    ┌────────────┐
-   │ PostgreSQL │   │   Redis     │    │ Cloudinary │
-   │  (Data +   │   │  (Cache)    │    │  (Images)  │
-   │   FTS)     │   │             │    │            │
-   └────────────┘   └─────────────┘    └────────────┘
-          │
-          ▼
-   ┌──────────────────────────────┐
-   │   External AI APIs          │
-   │  ┌────────────────────────┐ │
-   │  │ Google Gemini API      │ │
-   │  │ OpenRouter API         │ │
-   │  │  ├ nex-n2-pro (vision) │ │
-   │  │  └ nemotron-3-super    │ │
-   │  └────────────────────────┘ │
-   └──────────────────────────────┘
+Controllers → Services → Repositories → Database
+     ↓          ↓
+  Exceptions, Security, Caching
 ```
+
+**Key components:**
+- **Controllers** - REST endpoints at `/api/v1/`
+- **Services** - Business logic & AI integration
+- **Repositories** - JPA data access layer
+- **Security** - JWT authentication & authorization
+- **Caching** - Redis for performance
+- **External APIs** - Google Gemini, OpenRouter for AI
+
+See [docs/API.md](docs/API.md) for endpoint details and [docs/SECURITY.md](docs/SECURITY.md) for authentication strategy.
 
 ---
 
@@ -281,321 +254,32 @@ NoteMind-AI/
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Quick Start
 
-### Prerequisites
-
-| Requirement | Version | Link |
-|---|---|---|
-| Java | 21+ | [Download OpenJDK](https://adoptium.net/temurin/releases/?version=21) |
-| PostgreSQL | 13+ | [Download](https://www.postgresql.org/download/) |
-| Redis | 6+ | [Download](https://redis.io/download/) |
-| Gradle | 7.6+ | [Download](https://gradle.org/releases/) |
-| Git | Latest | [Download](https://git-scm.com/) |
-| Cloudinary Account | Free | [Sign Up](https://cloudinary.com/users/register/free) |
-
-**API Keys Required:**
-- Google AI Gemini API key ([Get it here](https://makersuite.google.com/app/apikey))
-- OpenRouter API key ([Get it here](https://openrouter.ai/))
-
-### Installation
-
-#### 1. Clone the Repository
+Get the project running in **5 minutes**:
 
 ```bash
+# 1. Clone repository
 git clone https://github.com/sukhmmeet/NoteMind-AI.git
 cd NoteMind-AI/backend
-```
 
-#### 2. Create PostgreSQL Database
-
-Connect to PostgreSQL and create a new database:
-
-```sql
--- Connect to PostgreSQL
-psql -U postgres
-
--- Create database
-CREATE DATABASE notemind_ai;
-
--- Verify
-\l
-```
-
-#### 3. Environment Setup
-
-Copy the environment template and configure it:
-
-```bash
-# Set environment variables (Linux/macOS)
+# 2. Set environment variables (see docs/SETUP.md for details)
 export DB_URL="jdbc:postgresql://localhost:5432/notemind_ai"
-export DB_USERNAME="postgres"
-export DB_PASSWORD="your_password"
-export JWT_SECRET_KEY="your-256-bit-secret-key-min-32-chars"
+export JWT_SECRET_KEY="your-256-bit-secret-key"
 export GOOGLE_API_KEY="AIza..."
-export OPENROUTER_API_KEY="sk-or-..."
-export CLOUD_NAME_CLOUDINARY="your-cloud-name"
-export CLOUD_API_KEY_CLOUDINARY="123456789012345"
-export CLOUD_API_SECRET_CLOUDINARY="abcDEF..."
-```
 
-**For Windows PowerShell:**
-```powershell
-$env:DB_URL="jdbc:postgresql://localhost:5432/notemind_ai"
-$env:DB_USERNAME="postgres"
-$env:DB_PASSWORD="your_password"
-# ... and so on
-```
-
-**For Windows Command Prompt:**
-```cmd
-set DB_URL=jdbc:postgresql://localhost:5432/notemind_ai
-set DB_USERNAME=postgres
-set DB_PASSWORD=your_password
-REM ... and so on
-```
-
-> **💡 Tip:** For local development only, you can uncomment the values in `application.properties` and set them directly.
-
-#### 4. Running Locally
-
-**Step 1:** Start PostgreSQL
-```bash
-# macOS
-brew services start postgresql
-
-# Linux
-sudo systemctl start postgresql
-
-# Windows
-# Open pgAdmin 4 or use PostgreSQL installer
-```
-
-**Step 2:** Start Redis
-```bash
-# macOS
-brew services start redis
-
-# Linux
-sudo systemctl start redis-server
-
-# Windows
-# Download Redis for Windows or use WSL
-redis-server
-```
-
-**Step 3:** Run the Spring Boot Application
-```bash
-# Build the project
-./gradlew build
-
-# Run the application
+# 3. Start services (PostgreSQL & Redis must be running)
 ./gradlew bootRun
 
-# Or run directly with Java
-java -jar build/libs/notemind-api-0.0.1-SNAPSHOT.jar
-```
-
-**Step 4:** Verify the application is running
-```bash
+# 4. Test the API
 curl http://localhost:8080/api/v1/auth/signup
-# Should return 400 (missing body) - this means the server is up
 ```
 
-The API will be available at: **http://localhost:8080/api/v1**
-
-#### 5. Docker Setup (Optional)
-
-For a complete containerized setup, create the following `docker-compose.yml`:
-
-```yaml
-version: '3.8'
-
-services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: notemind-db
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: notemind_ai
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  redis:
-    image: redis:7-alpine
-    container_name: notemind-cache
-    ports:
-      - "6379:6379"
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  backend:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: notemind-api
-    ports:
-      - "8080:8080"
-    environment:
-      DB_URL: jdbc:postgresql://postgres:5432/notemind_ai
-      DB_USERNAME: postgres
-      DB_PASSWORD: postgres
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
-      GOOGLE_API_KEY: ${GOOGLE_API_KEY}
-      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
-      CLOUD_NAME_CLOUDINARY: ${CLOUD_NAME_CLOUDINARY}
-      CLOUD_API_KEY_CLOUDINARY: ${CLOUD_API_KEY_CLOUDINARY}
-      CLOUD_API_SECRET_CLOUDINARY: ${CLOUD_API_SECRET_CLOUDINARY}
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks:
-      - notemind-network
-
-volumes:
-  postgres_data:
-
-networks:
-  notemind-network:
-    driver: bridge
-```
-
-**Create a Dockerfile in the `backend` directory:**
-
-```dockerfile
-FROM openjdk:21-slim
-
-WORKDIR /app
-
-COPY build/libs/notemind-api-0.0.1-SNAPSHOT.jar app.jar
-
-ENTRYPOINT ["java", "-jar", "app.jar"]
-```
-
-**Run with Docker Compose:**
-
-```bash
-# Create .env file with your API keys
-echo "JWT_SECRET_KEY=your-secret" > .env
-echo "GOOGLE_API_KEY=AIza..." >> .env
-# ... add other keys
-
-# Build and start services
-docker-compose up -d
-
-# View logs
-docker-compose logs -f backend
-
-# Stop services
-docker-compose down
-```
-
-
-
-## 📡 API Reference
-
-> All endpoints (except `/auth/**`) require a valid JWT in the `Authorization: Bearer <token>` header.
-
-### Authentication Endpoints
-
-| Method | Endpoint | Description |
-|---|---|---|
-| `POST` | `/auth/signup` | Register a new user |
-| `POST` | `/auth/login` | Login and receive JWT + refresh token |
-| `POST` | `/auth/refresh-token` | Get a new JWT using a refresh token |
-| `POST` | `/auth/logout` | Revoke the refresh token |
-
-<details>
-<summary><b>🔐 Detailed Authentication Examples</b></summary>
-
-**POST /auth/signup** — Register a new user
-```bash
-curl -X POST http://localhost:8080/api/v1/auth/signup \
-  -H "Content-Type: application/json" \
-  -d '{
-    "username": "john_doe",
-    "password": "securePass123"
-  }'
-
-# Response 200
-{
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refreshToken": "550e8400-e29b-41d4-a716-446655440000",
-  "expiresIn": 3600
-}
-```
-
-**POST /auth/login** — Login with credentials
-```bash
-curl -X POST http://localhost:8080/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "username": "john_doe",
-    "password": "securePass123"
-  }'
-
-# Response 200
-{
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refreshToken": "550e8400-e29b-41d4-a716-446655440000",
-  "expiresIn": 3600
-}
-```
-
-**POST /auth/refresh-token** — Get a new access token
-```bash
-curl -X POST http://localhost:8080/api/v1/auth/refresh-token \
-  -H "Content-Type: application/json" \
-  -d '{
-    "refreshToken": "550e8400-e29b-41d4-a716-446655440000"
-  }'
-
-# Response 200
-{
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "expiresIn": 3600
-}
-```
-
-**POST /auth/logout** — Revoke refresh token
-```bash
-curl -X POST http://localhost:8080/api/v1/auth/logout \
-  -H "Authorization: Bearer <your-jwt-token>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "refreshToken": "550e8400-e29b-41d4-a716-446655440000"
-  }'
-
-# Response 200
-{ "message": "Logged out successfully" }
-```
-
-</details>
-
----
-
-### Notes Endpoints
-
-| Method | Endpoint | Description |
-|---|---|---|
-| `POST` | `/notes` | Create a note (multipart: `note` JSON + optional `image`) |
-| `GET` | `/notes` | Get all notes for the authenticated user (paginated) |
-| `GET` | `/notes/{id}` | Get a specific note by ID |
+**Full setup instructions** → [📖 Setup Guide](docs/SETUP.md)
+- Step-by-step installation for all platforms
+- Environment variable configuration
+- Docker Compose setup
+- Verification checklist
 | `PUT` | `/notes/{id}` | Update a note (multipart) |
 | `DELETE` | `/notes/{id}` | Delete a note |
 | `GET` | `/notes/search?query=...` | Full-text search across notes |
