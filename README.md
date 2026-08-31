@@ -11,6 +11,8 @@
   <img src="https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white" alt="PostgreSQL"/>
   <img src="https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white" alt="Redis"/>
   <img src="https://img.shields.io/badge/Gradle-02303A?style=for-the-badge&logo=gradle&logoColor=white" alt="Gradle"/>
+  <img src="https://img.shields.io/badge/Kotlin-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white" alt="Kotlin"/>
+  <img src="https://img.shields.io/badge/Status-In%20Development-yellow?style=for-the-badge" alt="Status"/>
 </p>
 
 ---
@@ -23,8 +25,18 @@
 - [Tech Stack](#%EF%B8%8F-tech-stack)
 - [Project Structure](#-project-structure)
 - [Getting Started](#-getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
+  - [Environment Setup](#environment-setup)
+  - [Running Locally](#running-locally)
+  - [Docker Setup](#docker-setup)
 - [API Reference](#-api-reference)
 - [Database Schema](#-database-schema)
+- [Testing](#-testing)
+- [Performance & Optimization](#-performance--optimization)
+- [Security Best Practices](#-security-best-practices)
+- [Troubleshooting](#-troubleshooting)
+- [Contributing](#-contributing)
 - [Roadmap](#-roadmap)
 - [Author](#-author)
 
@@ -273,62 +285,233 @@ NoteMind-AI/
 
 ### Prerequisites
 
-- **Java 21** (JDK)
-- **PostgreSQL** (running locally or remote)
-- **Redis** (for caching)
-- **Cloudinary account** (free tier works)
-- API keys for **Google AI** and/or **OpenRouter**
+| Requirement | Version | Link |
+|---|---|---|
+| Java | 21+ | [Download OpenJDK](https://adoptium.net/temurin/releases/?version=21) |
+| PostgreSQL | 13+ | [Download](https://www.postgresql.org/download/) |
+| Redis | 6+ | [Download](https://redis.io/download/) |
+| Gradle | 7.6+ | [Download](https://gradle.org/releases/) |
+| Git | Latest | [Download](https://git-scm.com/) |
+| Cloudinary Account | Free | [Sign Up](https://cloudinary.com/users/register/free) |
 
-### 1. Clone the repository
+**API Keys Required:**
+- Google AI Gemini API key ([Get it here](https://makersuite.google.com/app/apikey))
+- OpenRouter API key ([Get it here](https://openrouter.ai/))
+
+### Installation
+
+#### 1. Clone the Repository
 
 ```bash
 git clone https://github.com/sukhmmeet/NoteMind-AI.git
 cd NoteMind-AI/backend
 ```
 
-### 2. Create the database
+#### 2. Create PostgreSQL Database
+
+Connect to PostgreSQL and create a new database:
 
 ```sql
+-- Connect to PostgreSQL
+psql -U postgres
+
+-- Create database
 CREATE DATABASE notemind_ai;
+
+-- Verify
+\l
 ```
 
-### 3. Configure environment variables
+#### 3. Environment Setup
 
-Set these environment variables before running:
-
-| Variable | Description | Example |
-|---|---|---|
-| `DB_URL` | JDBC connection string | `jdbc:postgresql://localhost:5432/notemind_ai` |
-| `DB_USERNAME` | Database username | `postgres` |
-| `DB_PASSWORD` | Database password | `your_password` |
-| `JWT_SECRET_KEY` | Secret key for signing JWTs | `your-256-bit-secret` |
-| `GOOGLE_API_KEY` | Google AI (Gemini) API key | `AIza...` |
-| `OPENROUTER_API_KEY` | OpenRouter API key | `sk-or-...` |
-| `CLOUD_NAME_CLOUDINARY` | Cloudinary cloud name | `your-cloud-name` |
-| `CLOUD_API_KEY_CLOUDINARY` | Cloudinary API key | `123456789012345` |
-| `CLOUD_API_SECRET_CLOUDINARY` | Cloudinary API secret | `abcDEF...` |
-
-> **💡 Tip:** You can also set these directly in `application.properties` for local development — just uncomment the `${...}` references and replace with values.
-
-### 4. Run the application
+Copy the environment template and configure it:
 
 ```bash
+# Set environment variables (Linux/macOS)
+export DB_URL="jdbc:postgresql://localhost:5432/notemind_ai"
+export DB_USERNAME="postgres"
+export DB_PASSWORD="your_password"
+export JWT_SECRET_KEY="your-256-bit-secret-key-min-32-chars"
+export GOOGLE_API_KEY="AIza..."
+export OPENROUTER_API_KEY="sk-or-..."
+export CLOUD_NAME_CLOUDINARY="your-cloud-name"
+export CLOUD_API_KEY_CLOUDINARY="123456789012345"
+export CLOUD_API_SECRET_CLOUDINARY="abcDEF..."
+```
+
+**For Windows PowerShell:**
+```powershell
+$env:DB_URL="jdbc:postgresql://localhost:5432/notemind_ai"
+$env:DB_USERNAME="postgres"
+$env:DB_PASSWORD="your_password"
+# ... and so on
+```
+
+**For Windows Command Prompt:**
+```cmd
+set DB_URL=jdbc:postgresql://localhost:5432/notemind_ai
+set DB_USERNAME=postgres
+set DB_PASSWORD=your_password
+REM ... and so on
+```
+
+> **💡 Tip:** For local development only, you can uncomment the values in `application.properties` and set them directly.
+
+#### 4. Running Locally
+
+**Step 1:** Start PostgreSQL
+```bash
+# macOS
+brew services start postgresql
+
+# Linux
+sudo systemctl start postgresql
+
+# Windows
+# Open pgAdmin 4 or use PostgreSQL installer
+```
+
+**Step 2:** Start Redis
+```bash
+# macOS
+brew services start redis
+
+# Linux
+sudo systemctl start redis-server
+
+# Windows
+# Download Redis for Windows or use WSL
+redis-server
+```
+
+**Step 3:** Run the Spring Boot Application
+```bash
+# Build the project
+./gradlew build
+
+# Run the application
 ./gradlew bootRun
+
+# Or run directly with Java
+java -jar build/libs/notemind-api-0.0.1-SNAPSHOT.jar
 ```
 
-The API will be available at:
-
+**Step 4:** Verify the application is running
+```bash
+curl http://localhost:8080/api/v1/auth/signup
+# Should return 400 (missing body) - this means the server is up
 ```
-http://localhost:8080/api/v1
+
+The API will be available at: **http://localhost:8080/api/v1**
+
+#### 5. Docker Setup (Optional)
+
+For a complete containerized setup, create the following `docker-compose.yml`:
+
+```yaml
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: notemind-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: notemind_ai
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: notemind-cache
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: notemind-api
+    ports:
+      - "8080:8080"
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/notemind_ai
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
+      CLOUD_NAME_CLOUDINARY: ${CLOUD_NAME_CLOUDINARY}
+      CLOUD_API_KEY_CLOUDINARY: ${CLOUD_API_KEY_CLOUDINARY}
+      CLOUD_API_SECRET_CLOUDINARY: ${CLOUD_API_SECRET_CLOUDINARY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - notemind-network
+
+volumes:
+  postgres_data:
+
+networks:
+  notemind-network:
+    driver: bridge
 ```
 
----
+**Create a Dockerfile in the `backend` directory:**
+
+```dockerfile
+FROM openjdk:21-slim
+
+WORKDIR /app
+
+COPY build/libs/notemind-api-0.0.1-SNAPSHOT.jar app.jar
+
+ENTRYPOINT ["java", "-jar", "app.jar"]
+```
+
+**Run with Docker Compose:**
+
+```bash
+# Create .env file with your API keys
+echo "JWT_SECRET_KEY=your-secret" > .env
+echo "GOOGLE_API_KEY=AIza..." >> .env
+# ... add other keys
+
+# Build and start services
+docker-compose up -d
+
+# View logs
+docker-compose logs -f backend
+
+# Stop services
+docker-compose down
+```
+
+
 
 ## 📡 API Reference
 
 > All endpoints (except `/auth/**`) require a valid JWT in the `Authorization: Bearer <token>` header.
 
-### Authentication
+### Authentication Endpoints
 
 | Method | Endpoint | Description |
 |---|---|---|
@@ -338,59 +521,229 @@ http://localhost:8080/api/v1
 | `POST` | `/auth/logout` | Revoke the refresh token |
 
 <details>
-<summary><b>Request/Response examples</b></summary>
+<summary><b>🔐 Detailed Authentication Examples</b></summary>
 
-**POST /auth/signup**
-```json
-// Request
-{ "username": "john", "password": "securePass123" }
+**POST /auth/signup** — Register a new user
+```bash
+curl -X POST http://localhost:8080/api/v1/auth/signup \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "john_doe",
+    "password": "securePass123"
+  }'
 
-// Response 200
-{ "token": "eyJhbG...", "refreshToken": "uuid-refresh-token" }
+# Response 200
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refreshToken": "550e8400-e29b-41d4-a716-446655440000",
+  "expiresIn": 3600
+}
 ```
 
-**POST /auth/refresh-token**
-```json
-// Request
-{ "refreshToken": "uuid-refresh-token" }
+**POST /auth/login** — Login with credentials
+```bash
+curl -X POST http://localhost:8080/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "john_doe",
+    "password": "securePass123"
+  }'
 
-// Response 200
-{ "token": "eyJhbG...(new)" }
+# Response 200
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refreshToken": "550e8400-e29b-41d4-a716-446655440000",
+  "expiresIn": 3600
+}
+```
+
+**POST /auth/refresh-token** — Get a new access token
+```bash
+curl -X POST http://localhost:8080/api/v1/auth/refresh-token \
+  -H "Content-Type: application/json" \
+  -d '{
+    "refreshToken": "550e8400-e29b-41d4-a716-446655440000"
+  }'
+
+# Response 200
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "expiresIn": 3600
+}
+```
+
+**POST /auth/logout** — Revoke refresh token
+```bash
+curl -X POST http://localhost:8080/api/v1/auth/logout \
+  -H "Authorization: Bearer <your-jwt-token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "refreshToken": "550e8400-e29b-41d4-a716-446655440000"
+  }'
+
+# Response 200
+{ "message": "Logged out successfully" }
 ```
 
 </details>
 
 ---
 
-### Notes
+### Notes Endpoints
 
 | Method | Endpoint | Description |
 |---|---|---|
 | `POST` | `/notes` | Create a note (multipart: `note` JSON + optional `image`) |
-| `GET` | `/notes` | Get all notes for the authenticated user |
+| `GET` | `/notes` | Get all notes for the authenticated user (paginated) |
 | `GET` | `/notes/{id}` | Get a specific note by ID |
 | `PUT` | `/notes/{id}` | Update a note (multipart) |
 | `DELETE` | `/notes/{id}` | Delete a note |
 | `GET` | `/notes/search?query=...` | Full-text search across notes |
-| `GET` | `/notes/refresh-summary/{id}?type=SHORT` | Regenerate AI summary (SHORT / DETAILED / BULLET_POINTS) |
+| `GET` | `/notes/refresh-summary/{id}?type=SHORT` | Regenerate AI summary |
 
 <details>
-<summary><b>Create note example</b></summary>
+<summary><b>📝 Detailed Notes Examples</b></summary>
 
+**POST /notes** — Create a new note with AI-generated summary
 ```bash
+# Basic note (without image)
 curl -X POST http://localhost:8080/api/v1/notes \
-  -H "Authorization: Bearer <token>" \
-  -F 'note={"title":"Quantum Computing","content":"Quantum computers use qubits...","summaryType":"DETAILED"};type=application/json' \
-  -F 'image=@photo.jpg'
+  -H "Authorization: Bearer <your-jwt-token>" \
+  -F 'note={"title":"Quantum Computing","content":"Quantum computers use qubits instead of bits...","summaryType":"DETAILED"};type=application/json'
+
+# Response 201
+{
+  "id": 1,
+  "title": "Quantum Computing",
+  "content": "Quantum computers use qubits instead of bits...",
+  "summary": "Quantum computing is a revolutionary computing paradigm...",
+  "summaryType": "DETAILED",
+  "tags": [
+    { "id": 1, "name": "quantum-computing" },
+    { "id": 2, "name": "technology" }
+  ],
+  "imageUrl": null,
+  "createdAt": "2024-01-15T10:30:00Z",
+  "updatedAt": "2024-01-15T10:30:00Z",
+  "folderId": null
+}
 ```
 
-The response includes AI-generated `summary` and `tags`.
+**POST /notes (with image)** — Create a note with an image
+```bash
+curl -X POST http://localhost:8080/api/v1/notes \
+  -H "Authorization: Bearer <your-jwt-token>" \
+  -F 'note={"title":"Architecture Diagram","content":"This is our microservices architecture...","summaryType":"BULLET_POINTS"};type=application/json' \
+  -F 'image=@diagram.png'
+
+# Response 201 (with image URL from Cloudinary)
+{
+  "id": 2,
+  "title": "Architecture Diagram",
+  "imageUrl": "https://res.cloudinary.com/.../diagram.png",
+  "summary": "• Microservices architecture\n• API Gateway pattern\n• Database per service",
+  ...
+}
+```
+
+**GET /notes** — Retrieve all notes (paginated)
+```bash
+curl -X GET "http://localhost:8080/api/v1/notes?page=0&size=10" \
+  -H "Authorization: Bearer <your-jwt-token>"
+
+# Response 200
+{
+  "content": [
+    {
+      "id": 1,
+      "title": "Quantum Computing",
+      "summary": "...",
+      "tags": [...],
+      "createdAt": "2024-01-15T10:30:00Z"
+    }
+  ],
+  "pageable": {
+    "pageNumber": 0,
+    "pageSize": 10,
+    "totalElements": 42,
+    "totalPages": 5
+  }
+}
+```
+
+**GET /notes/{id}** — Retrieve a specific note
+```bash
+curl -X GET http://localhost:8080/api/v1/notes/1 \
+  -H "Authorization: Bearer <your-jwt-token>"
+
+# Response 200
+{
+  "id": 1,
+  "title": "Quantum Computing",
+  "content": "...",
+  "summary": "...",
+  "tags": [...],
+  "createdAt": "2024-01-15T10:30:00Z",
+  "updatedAt": "2024-01-15T10:30:00Z"
+}
+```
+
+**PUT /notes/{id}** — Update a note
+```bash
+curl -X PUT http://localhost:8080/api/v1/notes/1 \
+  -H "Authorization: Bearer <your-jwt-token>" \
+  -F 'note={"title":"Updated Title","content":"Updated content...","summaryType":"SHORT"};type=application/json' \
+  -F 'image=@new-image.jpg'
+
+# Response 200 (with regenerated summary and tags)
+```
+
+**GET /notes/search?query=...** — Full-text search
+```bash
+curl -X GET "http://localhost:8080/api/v1/notes/search?query=quantum&limit=20" \
+  -H "Authorization: Bearer <your-jwt-token>"
+
+# Response 200
+{
+  "results": [
+    {
+      "id": 1,
+      "title": "Quantum Computing",
+      "summary": "...",
+      "relevanceScore": 0.95
+    }
+  ],
+  "totalResults": 5
+}
+```
+
+**GET /notes/refresh-summary/{id}?type=...** — Regenerate summary
+```bash
+# Available types: SHORT, DETAILED, BULLET_POINTS
+curl -X GET "http://localhost:8080/api/v1/notes/1/refresh-summary?type=BULLET_POINTS" \
+  -H "Authorization: Bearer <your-jwt-token>"
+
+# Response 200
+{
+  "id": 1,
+  "summary": "• Point 1\n• Point 2\n• Point 3",
+  "summaryType": "BULLET_POINTS"
+}
+```
+
+**DELETE /notes/{id}** — Delete a note
+```bash
+curl -X DELETE http://localhost:8080/api/v1/notes/1 \
+  -H "Authorization: Bearer <your-jwt-token>"
+
+# Response 204 (No Content)
+```
 
 </details>
 
 ---
 
-### Flashcards
+### Flashcard Endpoints
 
 | Method | Endpoint | Description |
 |---|---|---|
@@ -403,9 +756,80 @@ The response includes AI-generated `summary` and `tags`.
 | `DELETE` | `/flashcards/{flashCardId}` | Delete a flashcard |
 | `DELETE` | `/notes/{noteId}/flashcards` | Delete all flashcards of a note |
 
+<details>
+<summary><b>🃏 Detailed Flashcard Examples</b></summary>
+
+**POST /notes/{noteId}/flashcards/generate** — Generate flashcards from note
+```bash
+curl -X POST "http://localhost:8080/api/v1/notes/1/flashcards/generate?count=5" \
+  -H "Authorization: Bearer <your-jwt-token>"
+
+# Response 201
+{
+  "noteId": 1,
+  "flashcards": [
+    {
+      "id": 1,
+      "question": "What is a qubit?",
+      "answer": "A qubit (quantum bit) is the fundamental unit of quantum computing...",
+      "createdAt": "2024-01-15T10:35:00Z"
+    },
+    {
+      "id": 2,
+      "question": "How does quantum superposition work?",
+      "answer": "Quantum superposition allows a qubit to exist in multiple states...",
+      "createdAt": "2024-01-15T10:35:00Z"
+    }
+  ],
+  "totalGenerated": 5
+}
+```
+
+**GET /notes/{noteId}/flashcards** — List all flashcards for a note
+```bash
+curl -X GET http://localhost:8080/api/v1/notes/1/flashcards \
+  -H "Authorization: Bearer <your-jwt-token>"
+
+# Response 200
+{
+  "flashcards": [
+    {
+      "id": 1,
+      "question": "What is a qubit?",
+      "answer": "...",
+      "createdAt": "2024-01-15T10:35:00Z"
+    }
+  ],
+  "totalCount": 5
+}
+```
+
+**PATCH /flashcards/{flashCardId}** — Update a flashcard
+```bash
+curl -X PATCH http://localhost:8080/api/v1/flashcards/1 \
+  -H "Authorization: Bearer <your-jwt-token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "question": "What is a quantum bit?",
+    "answer": "Updated answer with more detail..."
+  }'
+
+# Response 200
+```
+
+**DELETE /notes/{noteId}/flashcards** — Delete all flashcards for a note
+```bash
+curl -X DELETE http://localhost:8080/api/v1/notes/1/flashcards \
+  -H "Authorization: Bearer <your-jwt-token>"
+
+# Response 204 (No Content)
+```
+
+</details>
+
 ---
 
-### Folders
+### Folder Endpoints
 
 | Method | Endpoint | Description |
 |---|---|---|
@@ -414,6 +838,459 @@ The response includes AI-generated `summary` and `tags`.
 | `GET` | `/folder/{id}` | Get folder by ID |
 | `PATCH` | `/folder/{id}` | Rename a folder |
 | `DELETE` | `/folder/{id}` | Delete a folder |
+
+<details>
+<summary><b>📁 Detailed Folder Examples</b></summary>
+
+**POST /folder** — Create a new folder
+```bash
+curl -X POST http://localhost:8080/api/v1/folder \
+  -H "Authorization: Bearer <your-jwt-token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Study Notes"
+  }'
+
+# Response 201
+{
+  "id": 1,
+  "name": "Study Notes",
+  "createdAt": "2024-01-15T10:40:00Z"
+}
+```
+
+**GET /folder** — Get all folders with nested notes
+```bash
+curl -X GET "http://localhost:8080/api/v1/folder?includeNotes=true" \
+  -H "Authorization: Bearer <your-jwt-token>"
+
+# Response 200
+{
+  "folders": [
+    {
+      "id": 1,
+      "name": "Study Notes",
+      "notes": [
+        {
+          "id": 1,
+          "title": "Quantum Computing",
+          "summary": "..."
+        }
+      ],
+      "noteCount": 1
+    }
+  ]
+}
+```
+
+**PATCH /folder/{id}** — Rename a folder
+```bash
+curl -X PATCH http://localhost:8080/api/v1/folder/1 \
+  -H "Authorization: Bearer <your-jwt-token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Advanced Study Notes"
+  }'
+
+# Response 200
+```
+
+**DELETE /folder/{id}** — Delete a folder
+```bash
+curl -X DELETE http://localhost:8080/api/v1/folder/1 \
+  -H "Authorization: Bearer <your-jwt-token>"
+
+# Response 204 (No Content)
+```
+
+</details>
+
+---
+
+## 🧪 Testing
+
+The project includes comprehensive test coverage using JUnit 5, Spring Test, and Testcontainers.
+
+### Running Tests
+
+```bash
+# Run all tests
+./gradlew test
+
+# Run a specific test class
+./gradlew test --tests com.dhaliwal.notemind.controller.NoteControllerTest
+
+# Run with coverage report
+./gradlew test jacocoTestReport
+
+# View coverage report (generated in build/reports/jacoco/test/html/index.html)
+```
+
+### Test Structure
+
+```
+src/test/java/com/dhaliwal/notemind/
+├── controller/           # Controller integration tests
+├── service/             # Service unit tests
+├── repository/          # Repository tests with Testcontainers
+├── security/            # JWT and Auth filter tests
+└── resources/
+    └── application-test.properties
+```
+
+### Key Testing Patterns
+
+- **Integration Tests**: Use `@SpringBootTest` with `Testcontainers` for PostgreSQL
+- **Unit Tests**: Mock dependencies using Mockito
+- **Security Tests**: Use `@WithMockUser` for testing secured endpoints
+- **Repository Tests**: Test complex JPA queries with real database
+
+### Example Test
+
+```java
+@SpringBootTest
+@Testcontainers
+public class NoteControllerTest {
+    @Container
+    static PostgreSQLContainer<?> postgres = 
+        new PostgreSQLContainer<>("postgres:15")
+            .withDatabaseName("notemind_ai_test");
+
+    @Test
+    void testCreateNote_shouldGenerateSummary() {
+        // Test implementation
+    }
+}
+```
+
+---
+
+## ⚡ Performance & Optimization
+
+### Caching Strategy
+
+- **L1 Cache (Redis)**: Individual notes cached with TTL
+- **Cache Invalidation**: Automatic eviction on update/delete operations
+- **Cache Keys**: Structured as `note::{id}` for easy management
+
+### Database Optimization
+
+| Optimization | Implementation |
+|---|---|
+| **Full-Text Search** | PostgreSQL `tsvector` with `GIN` indexes |
+| **Query Indexing** | Indexes on `user_id`, `folder_id`, `created_at` |
+| **Pagination** | All list endpoints support `page` and `size` parameters |
+| **N+1 Prevention** | JPA lazy loading with `@Fetch(FetchMode.JOIN)` |
+
+### Database Indexes
+
+```sql
+-- Automatically created indexes
+CREATE INDEX idx_note_user_id ON note(user_id);
+CREATE INDEX idx_note_folder_id ON note(folder_id);
+CREATE INDEX idx_note_search_vector ON note USING GIN(search_vector);
+CREATE INDEX idx_flashcard_note_id ON flash_card(note_id);
+CREATE INDEX idx_refresh_token_user_id ON refresh_token(user_id);
+```
+
+### Load Testing Recommendations
+
+1. Use tools like JMeter or Locust
+2. Test with concurrent users (10, 50, 100)
+3. Monitor Redis memory usage and eviction rates
+4. Monitor PostgreSQL query performance with `pg_stat_statements`
+
+**Example Load Test Command:**
+```bash
+# Using Apache JMeter
+jmeter -n -t load-test.jmx -l results.jtl -j logs.log -Jthreads=50 -Jduration=300
+```
+
+---
+
+## 🔐 Security Best Practices
+
+### Authentication & Authorization
+
+| Practice | Implementation |
+|---|---|
+| **Password Storage** | BCrypt hashing (strength 10) |
+| **JWT Signing** | HMAC-SHA256 with 256-bit key |
+| **Token Expiry** | 15-minute access tokens, 7-day refresh tokens |
+| **Refresh Token Revocation** | Database tracking with revocation flag |
+| **User Isolation** | All queries automatically filtered by `@AuthenticationPrincipal` |
+
+### API Security
+
+```java
+// Example: All user notes are scoped
+@GetMapping
+public ResponseEntity<?> getAllNotes() {
+    User currentUser = securityUtils.getCurrentUser(); // Automatic
+    List<Note> notes = noteRepository.findByUser(currentUser);
+    // Only current user's notes are returned
+}
+```
+
+### Data Protection
+
+- **HTTPS Only**: Configure SSL/TLS certificates in production
+- **CORS Configuration**: Restrict to trusted origins only
+- **Rate Limiting**: Implement to prevent brute force attacks
+- **Input Validation**: All DTOs validated with `@Valid` and custom validators
+- **SQL Injection Prevention**: All queries use JPA parameterized queries
+
+### Environment Variable Security
+
+**Never commit secrets! Use environment variables:**
+
+```bash
+# ✅ Good - Environment variable
+export GOOGLE_API_KEY="${GOOGLE_API_KEY}"
+
+# ❌ Bad - Hardcoded in code
+String apiKey = "AIza...";
+```
+
+### Security Configuration
+
+Key configuration in [SecurityConfig.java](backend/src/main/java/com/dhaliwal/notemind/security/config/SecurityConfig.java):
+
+- CORS policies
+- CSRF protection disabled for stateless APIs
+- JWT filter registration
+- Password encoder configuration
+
+---
+
+## 🐛 Troubleshooting
+
+### Common Issues & Solutions
+
+#### 1. **"Connection refused" - PostgreSQL**
+
+**Problem:** `org.postgresql.util.PSQLException: Connection refused`
+
+**Solution:**
+```bash
+# Verify PostgreSQL is running
+psql -U postgres -d postgres -c "SELECT version();"
+
+# If not running, start it
+# macOS
+brew services start postgresql
+
+# Linux
+sudo systemctl start postgresql
+
+# Verify connection string in application.properties
+# Should be: jdbc:postgresql://localhost:5432/notemind_ai
+```
+
+#### 2. **"Connection refused" - Redis**
+
+**Problem:** `io.lettuce.core.RedisConnectionException`
+
+**Solution:**
+```bash
+# Verify Redis is running
+redis-cli ping  # Should return PONG
+
+# If not running, start it
+# macOS
+brew services start redis
+
+# Linux
+sudo systemctl start redis-server
+```
+
+#### 3. **JWT Token Expired or Invalid**
+
+**Problem:** `401 Unauthorized`
+
+**Solution:**
+```bash
+# Get a new token using refresh token
+curl -X POST http://localhost:8080/api/v1/auth/refresh-token \
+  -H "Content-Type: application/json" \
+  -d '{"refreshToken": "your-refresh-token"}'
+
+# Or login again
+curl -X POST http://localhost:8080/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username": "user", "password": "pass"}'
+```
+
+#### 4. **"Environment variable not found"**
+
+**Problem:** `java.lang.NullPointerException` or missing config values
+
+**Solution:**
+```bash
+# Verify environment variables are set
+echo $JWT_SECRET_KEY
+echo $GOOGLE_API_KEY
+
+# If missing, set them
+export JWT_SECRET_KEY="your-secret"
+export GOOGLE_API_KEY="your-key"
+
+# Or uncomment values in application.properties for local development
+```
+
+#### 5. **Image Upload Fails (Cloudinary)**
+
+**Problem:** `403 Forbidden` or `Invalid Cloudinary credentials`
+
+**Solution:**
+```bash
+# Verify Cloudinary credentials
+export CLOUD_NAME_CLOUDINARY="your-cloud-name"
+export CLOUD_API_KEY_CLOUDINARY="your-api-key"
+export CLOUD_API_SECRET_CLOUDINARY="your-api-secret"
+
+# Test API key validity
+curl -X GET "https://api.cloudinary.com/v1_1/${CLOUD_NAME_CLOUDINARY}/resources/image" \
+  -u "${CLOUD_API_KEY_CLOUDINARY}:${CLOUD_API_SECRET_CLOUDINARY}"
+```
+
+#### 6. **Out of Memory (Gradle Build)**
+
+**Problem:** `java.lang.OutOfMemoryError: Java heap space`
+
+**Solution:**
+```bash
+# Increase Gradle memory
+export GRADLE_OPTS="-Xmx1024m"
+
+# Or configure in gradle.properties
+echo "org.gradle.jvmargs=-Xmx1024m" >> gradle.properties
+
+# Run build
+./gradlew build
+```
+
+#### 7. **Tests Failing with "Testcontainer not found"**
+
+**Problem:** Docker not running or Testcontainers configuration issue
+
+**Solution:**
+```bash
+# Ensure Docker is running
+docker --version
+docker ps
+
+# If Docker is not installed, install it
+# Visit: https://www.docker.com/products/docker-desktop
+
+# Run tests again
+./gradlew test
+```
+
+### Debug Mode
+
+Enable debug logging to troubleshoot issues:
+
+```bash
+# Set debug level in application.properties
+logging.level.root=INFO
+logging.level.com.dhaliwal.notemind=DEBUG
+logging.level.org.springframework.security=DEBUG
+logging.level.org.springframework.web=DEBUG
+
+# Or via environment variable
+export LOGGING_LEVEL_COM_DHALIWAL_NOTEMIND=DEBUG
+./gradlew bootRun
+```
+
+### Health Check Endpoint
+
+```bash
+# Check application health (once added to config)
+curl http://localhost:8080/actuator/health
+
+# Expected response
+{
+  "status": "UP",
+  "components": {
+    "db": { "status": "UP" },
+    "redis": { "status": "UP" }
+  }
+}
+```
+
+### Getting Help
+
+1. **Check logs**: Look in `build/reports/tests/test/index.html` for test failures
+2. **Database logs**: Check PostgreSQL logs in `/var/log/postgresql/`
+3. **Redis logs**: Check Redis logs with `redis-cli monitor`
+4. **Spring Boot logs**: Look for stack traces in terminal output or logs directory
+
+---
+
+## 🤝 Contributing
+
+### Getting Started
+
+1. **Fork the repository**
+   ```bash
+   git clone https://github.com/sukhmmeet/NoteMind-AI.git
+   cd NoteMind-AI
+   ```
+
+2. **Create a feature branch**
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
+
+3. **Make changes and commit**
+   ```bash
+   git add .
+   git commit -m "feat: add your feature description"
+   ```
+
+4. **Push and create a Pull Request**
+   ```bash
+   git push origin feature/your-feature-name
+   ```
+
+### Code Style Guidelines
+
+- **Java**: Follow [Google Java Style Guide](https://google.github.io/styleguide/javaguide.html)
+- **Naming**: Use descriptive names for variables, methods, and classes
+- **Comments**: Add comments for complex logic
+- **Tests**: Write tests for new features
+- **Formatting**: Use IDE auto-format (Ctrl+Alt+L in IntelliJ)
+
+### Git Commit Messages
+
+```
+type(scope): description
+
+feat(auth): add OAuth2 support
+fix(notes): resolve N+1 query issue
+docs(readme): add Docker setup instructions
+test(flashcards): add test for regenerate endpoint
+refactor(services): extract AI logic to separate class
+```
+
+**Commit Types:**
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Documentation
+- `test`: Tests
+- `refactor`: Code refactoring
+- `perf`: Performance improvement
+- `chore`: Dependency/build updates
+
+### Submitting Issues
+
+When reporting bugs, include:
+1. Clear title and description
+2. Steps to reproduce
+3. Expected vs actual behavior
+4. Environment details (OS, Java version, etc.)
+5. Error logs/stack traces
 
 ---
 
@@ -465,23 +1342,102 @@ The response includes AI-generated `summary` and `tags`.
 
 ## 🔮 Roadmap
 
-- [ ] 📱 Android app with Kotlin & Jetpack Compose
+### Phase 1: Core Completion ✅
+- [x] Authentication & JWT
+- [x] Note CRUD operations
+- [x] AI summaries & tags
+- [x] Flashcard generation
+- [x] Image storage (Cloudinary)
+- [x] Full-text search
+
+### Phase 2: Android App 📱
+- [ ] Android app with Kotlin & Jetpack Compose
+- [ ] Offline mode with local database
+- [ ] Push notifications
+- [ ] Mobile-optimized UI
+
+### Phase 3: Advanced Features 🚀
 - [ ] 💬 AI chat with notes (conversational Q&A over your notes)
-- [ ] 🎙️ Voice notes with speech-to-text
-- [ ] ✍️ Markdown editor with live preview
+- [ ] 🎙️ Voice notes with speech-to-text transcription
+- [ ] ✍️ Rich Markdown editor with live preview
+- [ ] 📊 Study analytics & spaced repetition scheduling
+- [ ] 🎯 Flashcard performance tracking
+
+### Phase 4: Collaboration & Scaling 🌟
 - [ ] 🔗 Note sharing & collaboration links
 - [ ] 👥 Real-time collaboration (WebSocket)
 - [ ] 🔍 Elasticsearch integration for advanced search
-- [ ] 📊 Study analytics & flashcard performance tracking
+- [ ] 🗂️ Tags and labels system enhancements
+- [ ] 📤 Export notes to PDF, Word, Markdown
+
+### Phase 5: Integration & APIs 🔌
+- [ ] Notion API integration
+- [ ] Google Drive sync
+- [ ] Slack bot for quick notes
+- [ ] Browser extension for web clipping
+
+---
+
+## 📊 Project Statistics
+
+| Metric | Value |
+|---|---|
+| **Backend Controllers** | 4 |
+| **Service Classes** | 5+ |
+| **Entities** | 8 |
+| **API Endpoints** | 20+ |
+| **Test Coverage** | 16+ test classes |
+| **External Integrations** | 3 (Google AI, OpenRouter, Cloudinary) |
+
+---
+
+## 📚 Additional Resources
+
+- **Spring Boot Documentation**: https://spring.io/projects/spring-boot
+- **PostgreSQL Full-Text Search**: https://www.postgresql.org/docs/current/textsearch.html
+- **JWT Best Practices**: https://tools.ietf.org/html/rfc8725
+- **Google Gemini API**: https://ai.google.dev/
+- **OpenRouter**: https://openrouter.ai/
+- **Cloudinary**: https://cloudinary.com/documentation
 
 ---
 
 ## 👨‍💻 Author
 
-**Dhaliwal** — CSE Student
+**Sukhmeet Dhaliwal** — Computer Science Engineering Student
+
+- 📧 Email: sukhmmeet@gmail.com
+- 🐙 GitHub: [@sukhmmeet](https://github.com/sukhmmeet)
+- 💼 LinkedIn: [Sukhmeet Dhaliwal](https://linkedin.com/in/sukhmmeet)
+
+### Acknowledgments
+
+Special thanks to the open-source community for amazing tools like:
+- Spring Boot framework
+- PostgreSQL database
+- Redis caching
+- Google AI & OpenRouter for AI capabilities
+- Cloudinary for image storage
+
+---
+
+## 📄 License
+
+This project is open source and available under the MIT License.
 
 ---
 
 <p align="center">
-  <sub>Built with ❤️ using Java, Spring Boot, PostgreSQL & AI</sub>
+  <sub>⭐ If you find this project useful, please consider giving it a star!</sub>
+</p>
+
+<p align="center">
+  Built with ❤️ using Java, Spring Boot, PostgreSQL & AI
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/github/stars/sukhmmeet/NoteMind-AI?style=social" alt="Stars"/>
+  <img src="https://img.shields.io/github/forks/sukhmmeet/NoteMind-AI?style=social" alt="Forks"/>
+  <img src="https://img.shields.io/github/issues/sukhmmeet/NoteMind-AI" alt="Issues"/>
+  <img src="https://img.shields.io/github/license/sukhmmeet/NoteMind-AI" alt="License"/>
 </p>
