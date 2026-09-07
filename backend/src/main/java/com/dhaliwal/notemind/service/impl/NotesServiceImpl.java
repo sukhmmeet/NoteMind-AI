@@ -20,6 +20,8 @@ import com.dhaliwal.notemind.service.NotesService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
@@ -194,6 +196,18 @@ public class NotesServiceImpl implements NotesService {
                 .map(noteMapper::toDto)
                 .toList();
     }
+
+            @Override
+            @Cacheable(
+                cacheNames = "userNotes",
+                key = "#root.target.securityUtils.getUserId() + ':' + #pageable.pageNumber + ':' + #pageable.pageSize + ':' + #pageable.sort"
+            )
+            public Page<NoteDto> getAllNotes(Pageable pageable) {
+            User user = getCurrentUser();
+
+            return noteRepository.findAllByUserId(user.getId(), pageable)
+                .map(noteMapper::toDto);
+            }
 
     @Override
     @Cacheable(cacheNames = CACHE_NAME, key = "#id + ':' + #root.target.securityUtils.getUserId()")

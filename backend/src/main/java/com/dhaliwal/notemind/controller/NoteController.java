@@ -5,6 +5,9 @@ import com.dhaliwal.notemind.dto.NoteDto;
 import com.dhaliwal.notemind.entity.type.SummaryType;
 import com.dhaliwal.notemind.service.NotesService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -34,8 +37,10 @@ public class NoteController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<NoteDto>>> getAllNotes() {
-        return ResponseEntity.ok(ApiResponse.success(notesService.getAllNotes()));
+    public ResponseEntity<ApiResponse<Page<NoteDto>>> getAllNotes(
+            @PageableDefault(size = 10, sort = "createdAt") Pageable pageable
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(notesService.getAllNotes(pageable)));
     }
 
     @GetMapping("/{id}")

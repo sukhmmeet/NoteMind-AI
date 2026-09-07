@@ -11,6 +11,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.web.PageableHandlerMethodArgumentResolver;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -36,7 +39,9 @@ public class NoteControllerTest {
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(new NoteController(notesService, objectMapper)).build();
+                mockMvc = MockMvcBuilders.standaloneSetup(new NoteController(notesService, objectMapper))
+                                .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
+                                .build();
     }
 
     @Test
@@ -76,13 +81,14 @@ public class NoteControllerTest {
         NoteDto note1 = new NoteDto(); note1.setId(1L); note1.setTitle("Note 1");
         NoteDto note2 = new NoteDto(); note2.setId(2L); note2.setTitle("Note 2");
 
-        when(notesService.getAllNotes()).thenReturn(List.of(note1, note2));
+        when(notesService.getAllNotes(any())).thenReturn(new PageImpl<>(List.of(note1, note2), PageRequest.of(0, 10), 2));
 
-        mockMvc.perform(get("/notes"))
+        mockMvc.perform(get("/notes").param("page", "0").param("size", "10"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.length()").value(2))
-                .andExpect(jsonPath("$.data[0].title").value("Note 1"));
+                .andExpect(jsonPath("$.data.content.length()").value(2))
+                .andExpect(jsonPath("$.data.content[0].title").value("Note 1"))
+                .andExpect(jsonPath("$.data.totalElements").value(2));
     }
 
     @Test
