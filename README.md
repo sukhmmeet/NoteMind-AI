@@ -54,6 +54,7 @@ The backend features a clean, layered architecture with JWT + refresh token auth
 
 - 🤖 **AI-first** — Summaries and tags are generated automatically on every save
 - 🃏 **Flashcard generation** — AI creates Q&A flashcards from any note for active recall study
+- ✅ **Quiz generation** — AI creates multiple-choice quizzes with answers and explanations
 - 🔍 **Full-text search** — PostgreSQL `tsvector`/`tsquery` with GIN indexing searches across titles, content, and AI summaries
 - 📁 **Folder organization** — Organize notes into user-scoped folders
 - 🖼️ **Multimodal AI** — Vision models analyze attached images alongside text content
@@ -90,6 +91,12 @@ The backend features a clean, layered architecture with JWT + refresh token auth
 - **Manual CRUD** — create, update, and delete individual flashcards
 - **Bulk delete** — remove all flashcards for a note at once
 - AI uses both text content and attached images to produce flashcards
+
+### ✅ AI Quizzes
+
+- Generate 1–20 multiple-choice questions from any note
+- Each question includes four options, the correct answer, and an explanation
+- AI uses note text and attached images as quiz sources
 
 ### 📁 Folders
 

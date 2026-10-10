@@ -6,6 +6,7 @@
 - [Authentication](#authentication-endpoints)
 - [Notes](#notes-endpoints)
 - [Flashcards](#flashcard-endpoints)
+- [Quizzes](#quiz-endpoints)
 - [Folders](#folder-endpoints)
 
 ---
@@ -156,8 +157,12 @@ curl -X POST http://localhost:8080/api/v1/notes \
 
 Retrieve all notes (paginated)
 
+- `page`: zero-based page number; defaults to `0`
+- `size`: number of notes per page; defaults to `10`
+- `sort`: optional Spring Data sort expression, for example `createdAt,desc`
+
 ```bash
-curl -X GET "http://localhost:8080/api/v1/notes?page=0&size=10" \
+curl -X GET "http://localhost:8080/api/v1/notes?page=0&size=10&sort=createdAt,desc" \
   -H "Authorization: Bearer <your-jwt-token>"
 ```
 
@@ -343,6 +348,35 @@ curl -X PATCH http://localhost:8080/api/v1/flashcards/1 \
 **Response (200):** Updated flashcard
 
 ---
+
+## Quiz Endpoints
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/notes/{noteId}/quiz/generate?count=5` | Generate an AI multiple-choice quiz |
+
+### POST /notes/{noteId}/quiz/generate?count=5
+
+Generate between 1 and 20 multiple-choice questions from a note. The response includes four options, the correct answer, and an explanation for each question.
+
+```bash
+curl -X POST "http://localhost:8080/api/v1/notes/1/quiz/generate?count=5" \
+  -H "Authorization: Bearer <your-jwt-token>"
+```
+
+**Response (201):**
+```json
+{
+  "questions": [
+    {
+      "question": "What is a qubit?",
+      "options": ["A data type", "A quantum bit", "A database", "A protocol"],
+      "correctAnswer": "A quantum bit",
+      "explanation": "A qubit is the basic unit of quantum information."
+    }
+  ]
+}
+```
 
 ## Folder Endpoints
 

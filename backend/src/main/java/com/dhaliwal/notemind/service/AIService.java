@@ -2,6 +2,7 @@ package com.dhaliwal.notemind.service;
 
 import com.dhaliwal.notemind.dto.AINoteResponse;
 import com.dhaliwal.notemind.dto.flashCard.ai.AIFlashCardResponse;
+import com.dhaliwal.notemind.dto.quiz.ai.AIQuizResponse;
 import com.dhaliwal.notemind.entity.type.SummaryType;
 
 public interface AIService {
@@ -18,6 +19,13 @@ public interface AIService {
             SummaryType summaryType
     );
     AIFlashCardResponse  getAIFlashCardResponse(
+            String title,
+            String content,
+            String imageUrl,
+            int count
+    );
+
+    AIQuizResponse getAIQuizResponse(
             String title,
             String content,
             String imageUrl,

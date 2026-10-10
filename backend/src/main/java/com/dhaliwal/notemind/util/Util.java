@@ -132,6 +132,40 @@ public class Util {
                 - Generate between %s flashcards depending on the amount of information available.
                 """, title, content, countString);
     }
+
+    public String getPromptForQuiz(String title, String content, int count) {
+        return String.format("""
+                You are an expert teacher.
+
+                Create a multiple-choice quiz from the note below.
+                Generate exactly %s questions when the content supports it.
+                Each question must have exactly four distinct answer options.
+                The correctAnswer must exactly match one option.
+                Include a short explanation for the correct answer.
+                Use the image as an additional source of information when one is provided.
+
+                Title:
+                %s
+
+                Content:
+                %s
+
+                Return ONLY valid JSON in this format:
+                {
+                  "questions": [
+                    {
+                      "question": "Question text",
+                      "options": ["Option A", "Option B", "Option C", "Option D"],
+                      "correctAnswer": "Option B",
+                      "explanation": "Why this answer is correct"
+                    }
+                  ]
+                }
+
+                Do not return Markdown, code fences, or extra text.
+                """, count, title, content);
+    }
+
     public String chooseModel(String imageUrl) {
         if (imageUrl != null && !imageUrl.isEmpty()) {
             return "nex-agi/nex-n2-pro:free";

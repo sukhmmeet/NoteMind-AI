@@ -36,6 +36,11 @@ public class FolderServiceImpl implements FolderService {
     private final FolderMapper folderMapper;
     private final UserRepository userRepository;
     private final SecurityUtils securityUtils;
+
+    public SecurityUtils getSecurityUtils() {
+        return securityUtils;
+    }
+
     private static final String FOLDERS_CACHE = "folders";
     private static final String USER_FOLDERS_WITHOUT_NOTES_CACHE = "userFoldersWithoutNotes";
     private static final String USER_FOLDERS_WITH_NOTES_CACHE = "userFoldersWithNotes";

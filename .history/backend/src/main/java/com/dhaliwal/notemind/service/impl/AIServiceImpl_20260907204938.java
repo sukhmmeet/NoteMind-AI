@@ -1,0 +1,216 @@
+package com.dhaliwal.notemind.service.impl;
+
+import com.dhaliwal.notemind.dto.AINoteResponse;
+import com.dhaliwal.notemind.dto.flashCard.ai.AIFlashCardResponse;
+import com.dhaliwal.notemind.dto.quiz.ai.AIQuizResponse;
+import com.dhaliwal.notemind.entity.type.SummaryType;
+import com.dhaliwal.notemind.exception.AiServiceException;
+import com.dhaliwal.notemind.service.AIService;
+import com.dhaliwal.notemind.util.Util;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.genai.Client;
+import com.google.genai.types.GenerateContentResponse;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.*;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
+import java.util.Map;
+
+@Service
+public class AIServiceImpl implements AIService {
+
+    private final Util util;
+    private final ObjectMapper objectMapper;
+    private final RestTemplate restTemplate;
+
+    @Value("${openrouter.api.key}")
+    private String openRouterApiKey;
+
+    @Value("${google.api.key}")
+    private String genAIApiKey;
+
+    public AIServiceImpl(Util util, ObjectMapper objectMapper, RestTemplate restTemplate) {
+        this.util = util;
+        this.objectMapper = objectMapper;
+        this.restTemplate = restTemplate;
+    }
+
+    @Override
+    public String getSummaryFromTextGenAI(String title, String content) {
+        System.setProperty("GOOGLE_API_KEY", genAIApiKey);
+        Client client = Client.builder().apiKey(genAIApiKey).build();
+        String prompt = util.getPromptForNoteSummary(title, content);
+        GenerateContentResponse response =
+                client.models.generateContent(
+                        "gemini-3-flash-preview",
+                        prompt,
+                        null);
+        return response.text();
+    }
+    @Override
+    public AINoteResponse getAIResponse(String title, String content, String imageUrl) {
+        return getAIResponse(title, content, imageUrl, SummaryType.SHORT);
+    }
+
+    @Override
+    public AINoteResponse getAIResponse(String title, String content, String imageUrl, SummaryType summaryType) {
+        String prompt = util.getPromptForNoteSummary(title, content, summaryType);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(openRouterApiKey);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        Map<String, Object> requestBody = util.buildRequest(prompt, imageUrl);
+
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+
+        try {
+            ResponseEntity<String> responseEntity = restTemplate.exchange(
+                    "https://openrouter.ai/api/v1/chat/completions",
+                    HttpMethod.POST,
+                    entity,
+                    String.class
+            );
+
+            String response = responseEntity.getBody();
+
+            if (response == null || response.isEmpty()) {
+                throw new AiServiceException("Empty response from AI");
+            }
+
+            JsonNode root = objectMapper.readTree(response);
+
+            JsonNode choices = root.path("choices");
+
+            if (!choices.isArray() || choices.isEmpty()) {
+                throw new AiServiceException("Invalid AI response: no choices");
+            }
+
+            String summaryResponse = choices.get(0)
+                    .path("message")
+                    .path("content")
+                    .asText("");
+
+            // Clean weird characters
+            summaryResponse = summaryResponse.replaceAll("[^\\x00-\\x7F]", "").trim();
+            AINoteResponse aiNoteResponse = objectMapper.readValue(
+                    summaryResponse,
+                    AINoteResponse.class
+            );
+
+            return aiNoteResponse;
+
+        } catch (Exception e) {
+            throw new AiServiceException("Failed to get summary from AI", e);
+        }
+    }
+
+    @Override
+    public AIFlashCardResponse getAIFlashCardResponse(
+            String title,
+            String content,
+            String imageUrl,
+            int count) {
+        String prompt = util.getPromptForFlashCard(title, content, count);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(openRouterApiKey);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        Map<String, Object> requestBody = util.buildRequest(prompt, imageUrl);
+
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+
+        try {
+            ResponseEntity<String> responseEntity = restTemplate.exchange(
+                    "https://openrouter.ai/api/v1/chat/completions",
+                    HttpMethod.POST,
+                    entity,
+                    String.class
+            );
+
+            String response = responseEntity.getBody();
+
+            if (response == null || response.isEmpty()) {
+                throw new AiServiceException("Empty response from AI");
+            }
+
+            JsonNode root = objectMapper.readTree(response);
+
+            JsonNode choices = root.path("choices");
+
+            if (!choices.isArray() || choices.isEmpty()) {
+                throw new AiServiceException("Invalid AI response: no choices");
+            }
+
+            String flashCardResponse = choices.get(0)
+                    .path("message")
+                    .path("content")
+                    .asText("");
+
+            flashCardResponse = flashCardResponse
+                    .replaceAll("[^\\x00-\\x7F]", "")
+                    .trim();
+
+            return objectMapper.readValue(
+                    flashCardResponse,
+                    AIFlashCardResponse.class
+            );
+
+        } catch (Exception e) {
+            throw new AiServiceException("Failed to get flashcards from AI", e);
+        }
+    }
+
+    @Override
+    public AIQuizResponse getAIQuizResponse(
+            String title,
+            String content,
+            String imageUrl,
+            int count) {
+        String prompt = util.getPromptForQuiz(title, content, count);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(openRouterApiKey);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(
+                util.buildRequest(prompt, imageUrl),
+                headers
+        );
+
+        try {
+            ResponseEntity<String> responseEntity = restTemplate.exchange(
+                    "https://openrouter.ai/api/v1/chat/completions",
+                    HttpMethod.POST,
+                    entity,
+                    String.class
+            );
+
+            String response = responseEntity.getBody();
+            if (response == null || response.isEmpty()) {
+                throw new AiServiceException("Empty response from AI");
+            }
+
+            JsonNode choices = objectMapper.readTree(response).path("choices");
+            if (!choices.isArray() || choices.isEmpty()) {
+                throw new AiServiceException("Invalid AI response: no choices");
+            }
+
+            String quizResponse = choices.get(0)
+                    .path("message")
+                    .path("content")
+                    .asText("")
+                    .replaceAll("[^\\x00-\\x7F]", "")
+                    .trim();
+
+            return objectMapper.readValue(quizResponse, AIQuizResponse.class);
+        } catch (Exception e) {
+            throw new AiServiceException("Failed to generate quiz from AI", e);
+        }
+    }
+
+}
+

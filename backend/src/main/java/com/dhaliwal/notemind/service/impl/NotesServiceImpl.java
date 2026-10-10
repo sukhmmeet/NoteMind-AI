@@ -18,6 +18,7 @@ import com.dhaliwal.notemind.service.AIService;
 import com.dhaliwal.notemind.service.ImageManagerService;
 import com.dhaliwal.notemind.service.NotesService;
 import jakarta.transaction.Transactional;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -44,7 +45,9 @@ public class NotesServiceImpl implements NotesService {
     private final AIService aiService;
     private final ImageManagerService imageManagerService;
     private final UserRepository  userRepository;
+    @Getter
     private final SecurityUtils  securityUtils;
+
     private static final String CACHE_NAME = "notes";
     private static final String SUMMARY_UNAVAILABLE =
             "Summary is unavailable at this moment";
@@ -65,10 +68,10 @@ public class NotesServiceImpl implements NotesService {
     }
 
     private boolean validateNoteDto(NoteDto noteDto) {
-        return noteDto.getTitle() != null
-                && !noteDto.getTitle().isBlank()
-                && noteDto.getContent() != null
-                && !noteDto.getContent().isBlank();
+        return noteDto.getTitle() == null
+                || noteDto.getTitle().isBlank()
+                || noteDto.getContent() == null
+                || noteDto.getContent().isBlank();
     }
 
     private Note enrichNote(Note note, SummaryType summaryType) {
@@ -148,14 +151,14 @@ public class NotesServiceImpl implements NotesService {
     @Override
     @Transactional
     @Caching(
-            put = @CachePut(cacheNames = CACHE_NAME, key = "#result.id + ':' + #result.userId"),
+            put = @CachePut(cacheNames = CACHE_NAME, key = "#result.id + ':' + #root.target.getSecurityUtils().getUserId()"),
             evict = {
-                    @CacheEvict(cacheNames = "userNotes", key = "#root.target.securityUtils.getUserId()"),
-                    @CacheEvict(cacheNames = "userFoldersWithNotes", key = "#root.target.securityUtils.getUserId()")
+                    @CacheEvict(cacheNames = "userNotes", key = "#root.target.getSecurityUtils().getUserId()"),
+                    @CacheEvict(cacheNames = "userFoldersWithNotes", key = "#root.target.getSecurityUtils().getUserId()")
             }
     )
     public NoteDto createNote(NoteDto noteDto, MultipartFile image) {
-        if(!validateNoteDto(noteDto)) {
+        if(validateNoteDto(noteDto)) {
             throw new InvalidNoteException(
                     "Title and content are required."
             );
@@ -187,7 +190,7 @@ public class NotesServiceImpl implements NotesService {
     }
 
     @Override
-    @Cacheable(cacheNames = "userNotes", key = "#root.target.securityUtils.getUserId()")
+    @Cacheable(cacheNames = "userNotes", key = "#root.target.getSecurityUtils().getUserId()")
     public List<NoteDto> getAllNotes() {
         User user = getCurrentUser();
 
@@ -200,7 +203,7 @@ public class NotesServiceImpl implements NotesService {
             @Override
             @Cacheable(
                 cacheNames = "userNotes",
-                key = "#root.target.securityUtils.getUserId() + ':' + #pageable.pageNumber + ':' + #pageable.pageSize + ':' + #pageable.sort"
+                key = "#root.target.getSecurityUtils().getUserId() + ':' + #pageable.pageNumber + ':' + #pageable.pageSize + ':' + #pageable.sort"
             )
             public Page<NoteDto> getAllNotes(Pageable pageable) {
             User user = getCurrentUser();
@@ -210,7 +213,7 @@ public class NotesServiceImpl implements NotesService {
             }
 
     @Override
-    @Cacheable(cacheNames = CACHE_NAME, key = "#id + ':' + #root.target.securityUtils.getUserId()")
+    @Cacheable(cacheNames = CACHE_NAME, key = "#id + ':' + #root.target.getSecurityUtils().getUserId()")
     public NoteDto getNoteById(Long id) {
         User user = getCurrentUser();
         Note note = noteRepository.findById(id).orElseThrow(() -> new NoteNotFoundException("Not find note of this id:" + id));
@@ -223,14 +226,14 @@ public class NotesServiceImpl implements NotesService {
     @Override
     @Transactional
     @Caching(
-            put = @CachePut(cacheNames = CACHE_NAME, key = "#id + ':' + #root.target.securityUtils.getUserId()"),
+            put = @CachePut(cacheNames = CACHE_NAME, key = "#id + ':' + #root.target.getSecurityUtils().getUserId()"),
             evict = {
-                    @CacheEvict(cacheNames = "userNotes", key = "#root.target.securityUtils.getUserId()"),
-                    @CacheEvict(cacheNames = "userFoldersWithNotes", key = "#root.target.securityUtils.getUserId()")
+                    @CacheEvict(cacheNames = "userNotes", key = "#root.target.getSecurityUtils().getUserId()"),
+                    @CacheEvict(cacheNames = "userFoldersWithNotes", key = "#root.target.getSecurityUtils().getUserId()")
             }
     )
     public NoteDto updateNote(Long id, NoteDto noteDto, MultipartFile image) {
-        if(!validateNoteDto(noteDto)) {
+        if(validateNoteDto(noteDto)) {
             throw new InvalidNoteException(
                     "Title and content are required."
             );
@@ -266,9 +269,9 @@ public class NotesServiceImpl implements NotesService {
 
     @Override
     @Caching(evict = {
-            @CacheEvict(cacheNames = "notes", key = "#id + ':' + #root.target.securityUtils.getUserId()"),
-            @CacheEvict(cacheNames = "userNotes", key = "#root.target.securityUtils.getUserId()"),
-            @CacheEvict(cacheNames = "userFoldersWithNotes", key = "#root.target.securityUtils.getUserId()")
+            @CacheEvict(cacheNames = "notes", key = "#id + ':' + #root.target.getSecurityUtils().getUserId()"),
+            @CacheEvict(cacheNames = "userNotes", key = "#root.target.getSecurityUtils().getUserId()"),
+            @CacheEvict(cacheNames = "userFoldersWithNotes", key = "#root.target.getSecurityUtils().getUserId()")
     })
     public void deleteNote(Long id) {
         User user = getCurrentUser();
@@ -295,9 +298,9 @@ public class NotesServiceImpl implements NotesService {
     @Override
     @Transactional
     @Caching(evict = {
-            @CacheEvict(cacheNames = CACHE_NAME, key = "#noteId + ':' + #root.target.securityUtils.getUserId()"),
-            @CacheEvict(cacheNames = "userNotes", key = "#root.target.securityUtils.getUserId()"),
-            @CacheEvict(cacheNames = "userFoldersWithNotes", key = "#root.target.securityUtils.getUserId()")
+            @CacheEvict(cacheNames = CACHE_NAME, key = "#noteId + ':' + #root.target.getSecurityUtils().getUserId()"),
+            @CacheEvict(cacheNames = "userNotes", key = "#root.target.getSecurityUtils().getUserId()"),
+            @CacheEvict(cacheNames = "userFoldersWithNotes", key = "#root.target.getSecurityUtils().getUserId()")
     })
     public NoteDto moveToFolder(Long noteId, Long folderId) {
         Note note = noteRepository.findById(noteId).orElseThrow(() -> new NoteNotFoundException("Note not found"));
@@ -319,9 +322,9 @@ public class NotesServiceImpl implements NotesService {
     @Override
     @Transactional
     @Caching(evict = {
-            @CacheEvict(cacheNames = CACHE_NAME, key = "#noteId + ':' + #root.target.securityUtils.getUserId()"),
-            @CacheEvict(cacheNames = "userNotes", key = "#root.target.securityUtils.getUserId()"),
-            @CacheEvict(cacheNames = "userFoldersWithNotes", key = "#root.target.securityUtils.getUserId()")
+            @CacheEvict(cacheNames = CACHE_NAME, key = "#noteId + ':' + #root.target.getSecurityUtils().getUserId()"),
+            @CacheEvict(cacheNames = "userNotes", key = "#root.target.getSecurityUtils().getUserId()"),
+            @CacheEvict(cacheNames = "userFoldersWithNotes", key = "#root.target.getSecurityUtils().getUserId()")
     })
     public NoteDto removeFromFolder(Long noteId) {
         Note note = noteRepository.findById(noteId).orElseThrow(() -> new NoteNotFoundException("Note not found"));
@@ -336,10 +339,10 @@ public class NotesServiceImpl implements NotesService {
     @Override
     @Transactional
     @Caching(
-            put = @CachePut(cacheNames = CACHE_NAME, key = "#noteId + ':' + #root.target.securityUtils.getUserId()"),
+            put = @CachePut(cacheNames = CACHE_NAME, key = "#noteId + ':' + #root.target.getSecurityUtils().getUserId()"),
             evict = {
-                    @CacheEvict(cacheNames = "userNotes", key = "#root.target.securityUtils.getUserId()"),
-                    @CacheEvict(cacheNames = "userFoldersWithNotes", key = "#root.target.securityUtils.getUserId()")
+                    @CacheEvict(cacheNames = "userNotes", key = "#root.target.getSecurityUtils().getUserId()"),
+                    @CacheEvict(cacheNames = "userFoldersWithNotes", key = "#root.target.getSecurityUtils().getUserId()")
             }
     )
     public NoteDto refreshSummary(Long noteId, SummaryType summaryType) {

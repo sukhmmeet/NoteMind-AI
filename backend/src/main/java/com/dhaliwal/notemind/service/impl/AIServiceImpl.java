@@ -2,6 +2,7 @@ package com.dhaliwal.notemind.service.impl;
 
 import com.dhaliwal.notemind.dto.AINoteResponse;
 import com.dhaliwal.notemind.dto.flashCard.ai.AIFlashCardResponse;
+import com.dhaliwal.notemind.dto.quiz.ai.AIQuizResponse;
 import com.dhaliwal.notemind.entity.type.SummaryType;
 import com.dhaliwal.notemind.exception.AiServiceException;
 import com.dhaliwal.notemind.service.AIService;
@@ -160,6 +161,54 @@ public class AIServiceImpl implements AIService {
 
         } catch (Exception e) {
             throw new AiServiceException("Failed to get flashcards from AI", e);
+        }
+    }
+
+    @Override
+    public AIQuizResponse getAIQuizResponse(
+            String title,
+            String content,
+            String imageUrl,
+            int count) {
+        String prompt = util.getPromptForQuiz(title, content, count);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(openRouterApiKey);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(
+                util.buildRequest(prompt, imageUrl),
+                headers
+        );
+
+        try {
+            ResponseEntity<String> responseEntity = restTemplate.exchange(
+                    "https://openrouter.ai/api/v1/chat/completions",
+                    HttpMethod.POST,
+                    entity,
+                    String.class
+            );
+
+            String response = responseEntity.getBody();
+            if (response == null || response.isEmpty()) {
+                throw new AiServiceException("Empty response from AI");
+            }
+
+            JsonNode choices = objectMapper.readTree(response).path("choices");
+            if (!choices.isArray() || choices.isEmpty()) {
+                throw new AiServiceException("Invalid AI response: no choices");
+            }
+
+            String quizResponse = choices.get(0)
+                    .path("message")
+                    .path("content")
+                    .asText("")
+                    .replaceAll("[^\\x00-\\x7F]", "")
+                    .trim();
+
+            return objectMapper.readValue(quizResponse, AIQuizResponse.class);
+        } catch (Exception e) {
+            throw new AiServiceException("Failed to generate quiz from AI", e);
         }
     }
 

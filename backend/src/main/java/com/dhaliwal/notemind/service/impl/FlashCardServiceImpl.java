@@ -16,6 +16,7 @@ import com.dhaliwal.notemind.security.CurrentUserProvider;
 import com.dhaliwal.notemind.service.AIService;
 import com.dhaliwal.notemind.service.FlashCardService;
 import jakarta.transaction.Transactional;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
@@ -32,6 +33,7 @@ import java.util.Objects;
 public class FlashCardServiceImpl implements FlashCardService {
 
     private final FlashCardRepository flashCardRepository;
+    @Getter
     private final CurrentUserProvider currentUserProvider;
     private final NoteRepository noteRepository;
     private final AIService aiService;

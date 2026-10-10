@@ -3,6 +3,7 @@ package com.dhaliwal.notemind.service.impl;
 import com.dhaliwal.notemind.dto.AINoteResponse;
 import com.dhaliwal.notemind.dto.flashCard.ai.AIFlashCardResponse;
 import com.dhaliwal.notemind.dto.flashCard.ai.Flashcard;
+import com.dhaliwal.notemind.dto.quiz.ai.AIQuizResponse;
 import com.dhaliwal.notemind.entity.type.SummaryType;
 import com.dhaliwal.notemind.exception.AiServiceException;
 import com.dhaliwal.notemind.util.Util;
@@ -96,6 +97,32 @@ class AIServiceImplTest {
                 eq(String.class)
         );
     }
+
+                @Test
+                void getAIQuizResponse_ShouldReturnQuestions() throws Exception {
+                                String response = """
+                                                                {
+                                                                        "choices":[
+                                                                                {
+                                                                                        "message":{
+                                                                                                "content":"{\\"questions\\":[{\\"question\\":\\"What is Java?\\",\\"options\\":[\\"Language\\",\\"Database\\"],\\"correctAnswer\\":\\"Language\\",\\"explanation\\":\\"Java is a language.\\"}]}"
+                                                                                        }
+                                                                                }
+                                                                        ]
+                                                                }
+                                                                """;
+
+                                when(util.getPromptForQuiz("Title", "Content", 3)).thenReturn("quiz prompt");
+                                when(util.buildRequest("quiz prompt", null)).thenReturn(Map.of("model", "model"));
+                                when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), any(HttpEntity.class), eq(String.class)))
+                                                                .thenReturn(ResponseEntity.ok(response));
+
+                                AIQuizResponse result = aiService.getAIQuizResponse("Title", "Content", null, 3);
+
+                                assertEquals(1, result.getQuestions().size());
+                                assertEquals("What is Java?", result.getQuestions().getFirst().getQuestion());
+                                assertEquals("Language", result.getQuestions().getFirst().getCorrectAnswer());
+                }
 
     @Test
     void getAIResponse_ShouldThrow_WhenResponseIsEmpty() {
