@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>NoteMind AI - Frontend API Reference</title>
+  <style>
+    @page { size: A4; margin: 16mm 14mm; }
+    * { box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; color: #172033; line-height: 1.4; font-size: 10pt; }
+    h1 { color: #173b73; font-size: 27pt; margin: 0 0 8px; }
+    h2 { color: #173b73; font-size: 18pt; border-bottom: 2px solid #d9e3f3; padding-bottom: 5px; margin-top: 24px; }
+    h3 { color: #244f8f; font-size: 13pt; margin: 16px 0 6px; }
+    p { margin: 5px 0; }
+    code, pre { font-family: Consolas, "Courier New", monospace; }
+    code { background: #eef3fa; padding: 1px 4px; border-radius: 3px; }
+    pre { background: #f4f6f9; border: 1px solid #dce2ea; border-radius: 5px; padding: 9px; white-space: pre-wrap; font-size: 8.4pt; }
+    .cover { min-height: 245mm; display: flex; flex-direction: column; justify-content: center; }
+    .subtitle { font-size: 14pt; color: #53647e; }
+    .meta { margin-top: 30px; padding: 14px; border-left: 4px solid #2d6cdf; background: #f1f6ff; }
+    .endpoint { border: 1px solid #d6deea; border-radius: 6px; padding: 10px 12px; margin: 11px 0; break-inside: avoid; }
+    .method { font-weight: bold; color: #fff; padding: 3px 7px; border-radius: 4px; font-size: 8.5pt; margin-right: 7px; }
+    .get { background: #287b45; } .post { background: #2468b5; } .put { background: #945c16; }
+    .patch { background: #70429b; } .delete { background: #ad3131; }
+    .path { font-family: Consolas, monospace; font-weight: bold; font-size: 10pt; }
+    .small { color: #53647e; font-size: 9pt; }
+    table { width: 100%; border-collapse: collapse; margin: 7px 0 10px; break-inside: avoid; }
+    th, td { border: 1px solid #d6deea; padding: 5px 6px; text-align: left; vertical-align: top; }
+    th { background: #eaf1fb; color: #173b73; }
+    .page-break { break-before: page; }
+    .nowrap { white-space: nowrap; }
+    ul { margin-top: 4px; }
+    .footer-note { color: #53647e; font-size: 8.5pt; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <section class="cover">
+    <h1>NoteMind AI</h1>
+    <div class="subtitle">Frontend API Reference</div>
+    <div class="meta">
+      <p><strong>Base URL:</strong> <code>http://localhost:8080/api/v1</code></p>
+      <p><strong>Authentication:</strong> Every endpoint except <code>/auth/**</code> requires
+        <code>Authorization: Bearer &lt;jwtToken&gt;</code>.</p>
+      <p><strong>Source of truth:</strong> Spring controllers and DTOs in the current backend.</p>
+      <p><strong>Generated:</strong> 2026-10-14</p>
+    </div>
+    <h3>Universal response wrapper</h3>
+    <pre>{
+  "success": true,
+  "message": "Success",
+  "data": { },
+  "timestamp": "2026-10-14T18:28:14.849Z"
+}</pre>
+    <p class="small">The <code>data</code> property is omitted when null. Error responses use
+      <code>success: false</code>, an error message, and no data.</p>
+  </section>
+
+  <h2>1. Authentication</h2>
+  <p>Authentication endpoints are public. Store both tokens returned by login/signup. Send the
+    JWT access token in the Bearer header for protected requests.</p>
+
+  <div class="endpoint">
+    <h3><span class="method post">POST</span><span class="path">/auth/signup</span></h3>
+    <p>Create an account. <strong>Success:</strong> 200</p>
+    <pre>Request JSON
+{ "username": "john_doe", "password": "securePass123" }
+
+Response data
+{ "username": "john_doe", "userId": 1, "jwtToken": "&lt;jwt&gt;", "refreshToken": "&lt;refresh-token&gt;" }</pre>
+  </div>
+  <div class="endpoint">
+    <h3><span class="method post">POST</span><span class="path">/auth/login</span></h3>
+    <p>Log in. <strong>Success:</strong> 200</p>
+    <pre>Request JSON
+{ "username": "john_doe", "password": "securePass123" }
+
+Response data
+{ "username": "john_doe", "userId": 1, "jwtToken": "&lt;jwt&gt;", "refreshToken": "&lt;refresh-token&gt;" }</pre>
+  </div>
+  <div class="endpoint">
+    <h3><span class="method post">POST</span><span class="path">/auth/refresh-token</span></h3>
+    <p>Exchange a refresh token for new tokens. <strong>Success:</strong> 200</p>
+    <pre>Request JSON
+{ "refreshToken": "&lt;refresh-token&gt;" }
+
+Response data
+{ "refreshToken": "&lt;new-refresh-token&gt;", "jwtToken": "&lt;new-jwt&gt;" }</pre>
+  </div>
+  <div class="endpoint">
+    <h3><span class="method post">POST</span><span class="path">/auth/logout</span></h3>
+    <p>Revoke a refresh token. <strong>Success:</strong> 200</p>
+    <pre>Request JSON
+{ "refreshToken": "&lt;refresh-token&gt;" }
+
+Response
+{ "success": true, "message": "Logged out successfully", "timestamp": "..." }</pre>
+  </div>
+
+  <h2 class="page-break">2. Notes</h2>
+  <p>Note fields: <code>id</code>, <code>title</code>, <code>content</code>, <code>summary</code>,
+    <code>summaryType</code>, <code>imageUrl</code>, <code>createdAt</code>, <code>updatedAt</code>,
+    <code>tags</code>, and <code>folderId</code>. Dates are ISO date-time strings.</p>
+
+  <div class="endpoint">
+    <h3><span class="method post">POST</span><span class="path">/notes</span></h3>
+    <p>Create a note. <strong>Content-Type:</strong> <code>multipart/form-data</code>.
+      <strong>Success:</strong> 200</p>
+    <table><tr><th>Part</th><th>Required</th><th>Format</th></tr>
+      <tr><td><code>note</code></td><td>Yes</td><td>JSON text, preferably with part content type <code>application/json</code></td></tr>
+      <tr><td><code>image</code></td><td>No</td><td>Image file</td></tr></table>
+    <pre>note part JSON
+{
+  "title": "Quantum Computing",
+  "content": "Quantum computers use qubits...",
+  "summaryType": "DETAILED",
+  "folderId": 1,
+  "tags": [{ "name": "technology" }]
+}
+
+Response data
+{
+  "id": 1, "title": "Quantum Computing", "content": "Quantum computers use qubits...",
+  "summary": "AI-generated summary", "summaryType": "DETAILED", "imageUrl": null,
+  "createdAt": "2026-10-14T18:28:14", "updatedAt": "2026-10-14T18:28:14",
+  "tags": [{ "id": 1, "name": "technology" }], "folderId": 1
+}</pre>
+  </div>
+  <div class="endpoint">
+    <h3><span class="method get">GET</span><span class="path">/notes</span></h3>
+    <p>List notes. <strong>Success:</strong> 200</p>
+    <p>Query parameters: <code>page</code> (zero-based, default 0), <code>size</code> (default 10),
+      <code>sort</code> (for example <code>createdAt,desc</code>; controller default sort is <code>createdAt</code>).</p>
+    <pre>Response data
+{
+  "content": [{ "id": 1, "title": "...", "content": "...", "summary": "...",
+    "summaryType": "SHORT", "imageUrl": null, "createdAt": "...", "updatedAt": "...",
+    "tags": [], "folderId": null }],
+  "pageable": { "pageNumber": 0, "pageSize": 10, "offset": 0, "paged": true, "unpaged": false },
+  "totalPages": 1, "totalElements": 1, "last": true, "size": 10, "number": 0,
+  "numberOfElements": 1, "first": true, "empty": false
+}</pre>
+  </div>
+  <div class="endpoint">
+    <h3><span class="method get">GET</span><span class="path">/notes/{id}</span></h3>
+    <p>Get one note. <strong>Success:</strong> 200. Example: <code>/notes/1</code>.</p>
+    <pre>Response data
+{ "id": 1, "title": "...", "content": "...", "summary": "...", "summaryType": "SHORT",
+  "imageUrl": null, "createdAt": "...", "updatedAt": "...", "tags": [], "folderId": null }</pre>
+  </div>
+  <div class="endpoint">
+    <h3><span class="method put">PUT</span><span class="path">/notes/{id}</span></h3>
+    <p>Update a note. Same multipart format as create. <strong>Success:</strong> 200.</p>
+  </div>
+  <div class="endpoint">
+    <h3><span class="method delete">DELETE</span><span class="path">/notes/{id}</span></h3>
+    <p>Delete a note. <strong>Success:</strong> 200.</p>
+    <pre>Response
+{ "success": true, "message": "Note deleted successfully", "timestamp": "..." }</pre>
+  </div>
+  <div class="endpoint">
+    <h3><span class="method get">GET</span><span class="path">/notes/search?query={text}</span></h3>
+    <p>Search notes. <strong>Success:</strong> 200. Response data is <code>NoteDto[]</code>.</p>
+  </div>
+  <div class="endpoint">
+    <h3><span class="method get">GET</span><span class="path">/notes/refresh-summary/{id}?type={summaryType}</span></h3>
+    <p>Regenerate a summary. <strong>Success:</strong> 200. Allowed types:
+      <code>SHORT</code>, <code>DETAILED</code>, <code>BULLET_POINTS</code>.</p>
+  </div>
+
+  <h2 class="page-break">3. Folders</h2>
+  <div class="endpoint">
+    <h3><span class="method post">POST</span><span class="path">/folder</span></h3>
+    <p>Create a folder. <strong>Success:</strong> 200.</p>
+    <pre>Request JSON: { "name": "Study" }
+Response data: { "id": 1, "name": "Study" }</pre>
+  </div>
+  <div class="endpoint">
+    <h3><span class="method get">GET</span><span class="path">/folder?includeNotes={boolean}</span></h3>
+    <p>List folders. <code>includeNotes</code> defaults to <code>false</code>.
+      <strong>Success:</strong> 200.</p>
+    <pre>includeNotes=false response data:
+[{ "id": 1, "name": "Study" }]
+
+includeNotes=true response data:
+[{ "id": 1, "name": "Study", "notes": [ /* NoteDto[] */ ] }]</pre>
+  </div>
+  <div class="endpoint">
+    <h3><span class="method get">GET</span><span class="path">/folder/{id}</span></h3>
+    <p>Get a folder without notes. <strong>Success:</strong> 200. Response data is
+      <code>{ "id": 1, "name": "Study" }</code>.</p>
+  </div>
+  <div class="endpoint">
+    <h3><span class="method patch">PATCH</span><span class="path">/folder/{id}</span></h3>
+    <p>Rename a folder. <strong>Success:</strong> 200. Request: <code>{ "name": "Exam Prep" }</code>.</p>
+  </div>
+  <div class="endpoint">
+    <h3><span class="method delete">DELETE</span><span class="path">/folder/{id}</span></h3>
+    <p>Delete a folder. <strong>Success:</strong> 200. Message: <code>Folder deleted successfully</code>.</p>
+  </div>
+
+  <h2 class="page-break">4. Flashcards</h2>
+  <div class="endpoint">
+    <h3><span class="method post">POST</span><span class="path">/notes/{noteId}/flashcards/generate?count={n}</span></h3>
+    <p>Generate AI flashcards. <code>count</code> defaults to 5 and must be 1-50. <strong>Success:</strong> 201.
+      Response data is <code>FlashCardDto[]</code>.</p>
+  </div>
+  <div class="endpoint">
+    <h3><span class="method post">POST</span><span class="path">/notes/{noteId}/flashcards/regenerate?count={n}</span></h3>
+    <p>Replace/regenerate AI flashcards. Count defaults to 5 and must be 1-50. <strong>Success:</strong> 200.
+      Response data is <code>FlashCardDto[]</code>.</p>
+  </div>
+  <div class="endpoint">
+    <h3><span class="method get">GET</span><span class="path">/notes/{noteId}/flashcards</span></h3>
+    <p>List flashcards for a note. <strong>Success:</strong> 200. Response data is <code>FlashCardDto[]</code>.</p>
+  </div>
+  <div class="endpoint">
+    <h3><span class="method get">GET</span><span class="path">/flashcards/{flashCardId}</span></h3>
+    <p>Get one flashcard. <strong>Success:</strong> 200.</p>
+  </div>
+  <div class="endpoint">
+    <h3><span class="method post">POST</span><span class="path">/notes/{noteId}/flashcards</span></h3>
+    <p>Create a flashcard. <strong>Success:</strong> 201. Request JSON:
+      <code>{ "question": "What is a qubit?", "answer": "A quantum bit." }</code>.</p>
+  </div>
+  <div class="endpoint">
+    <h3><span class="method patch">PATCH</span><span class="path">/flashcards/{flashCardId}</span></h3>
+    <p>Update a flashcard. <strong>Success:</strong> 200. Request JSON uses <code>question</code> and
+      <code>answer</code>.</p>
+  </div>
+  <div class="endpoint">
+    <h3><span class="method delete">DELETE</span><span class="path">/flashcards/{flashCardId}</span></h3>
+    <p>Delete one flashcard. <strong>Success:</strong> 200.</p>
+  </div>
+  <div class="endpoint">
+    <h3><span class="method delete">DELETE</span><span class="path">/notes/{noteId}/flashcards</span></h3>
+    <p>Delete all flashcards for a note. <strong>Success:</strong> 200.</p>
+  </div>
+  <pre>FlashCardDto
+{ "id": 1, "question": "What is a qubit?", "answer": "A quantum bit.",
+  "noteId": 1, "createdAt": "2026-10-14T18:28:14" }</pre>
+
+  <h2 class="page-break">5. Quizzes</h2>
+  <div class="endpoint">
+    <h3><span class="method post">POST</span><span class="path">/notes/{noteId}/quiz/generate?count={n}</span></h3>
+    <p>Generate an AI quiz. <code>count</code> defaults to 5 and must be 1-20. <strong>Success:</strong> 201.</p>
+    <pre>Response data
+[{
+  "question": "Which statement is correct?",
+  "options": ["Option A", "Option B", "Option C", "Option D"],
+  "correctAnswer": "Option B",
+  "explanation": "Why Option B is correct."
+}]</pre>
+  </div>
+
+  <h2>6. Errors and frontend notes</h2>
+  <table>
+    <tr><th>Status</th><th>Meaning</th><th>Typical cases</th></tr>
+    <tr><td>400</td><td>Bad request</td><td>Invalid note/folder, empty search, validation or malformed input</td></tr>
+    <tr><td>401</td><td>Unauthorized</td><td>Invalid credentials, expired/invalid refresh token, missing login</td></tr>
+    <tr><td>404</td><td>Not found</td><td>User, note, folder, or flashcard does not exist</td></tr>
+    <tr><td>409</td><td>Conflict</td><td>Username or folder name already exists</td></tr>
+    <tr><td>500</td><td>Server error</td><td>Unexpected error or image upload failure</td></tr>
+    <tr><td>502</td><td>AI gateway error</td><td>AI service failure while generating content</td></tr>
+  </table>
+  <pre>Error response shape
+{
+  "success": false,
+  "message": "Human-readable error message",
+  "timestamp": "2026-10-14T18:28:14.849Z"
+}</pre>
+  <ul>
+    <li>Use the access token as <code>Authorization: Bearer &lt;jwtToken&gt;</code>; do not send the refresh token in this header.</li>
+    <li>On a 401 from a protected request, call <code>/auth/refresh-token</code> once, replace stored tokens, then retry the original request.</li>
+    <li>Multipart note requests must send the JSON note as the <code>note</code> part and the optional file as <code>image</code>.</li>
+    <li>Generated flashcards and quizzes return arrays inside <code>data</code>; do not expect a bare array.</li>
+  </ul>
+  <p class="footer-note">This document describes the current backend implementation. Confirm deployment host and CORS settings before connecting a production frontend.</p>
+</body>
+</html>

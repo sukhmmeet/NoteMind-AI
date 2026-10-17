@@ -42,6 +42,11 @@ io.lettuce.core.RedisConnectionException
 
 **Solution:**
 ```bash
+# Confirm the endpoint protocol. For a local Redis server or a plaintext
+# cloud endpoint, use false; use true only for a TLS Redis endpoint.
+# PowerShell:
+$env:REDIS_SSL_ENABLED="false"
+
 # Verify Redis is running
 redis-cli ping  # Should return PONG
 

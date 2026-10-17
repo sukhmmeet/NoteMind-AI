@@ -69,6 +69,8 @@ $env:OPENROUTER_API_KEY="sk-or-..."
 $env:CLOUD_NAME_CLOUDINARY="your-cloud-name"
 $env:CLOUD_API_KEY_CLOUDINARY="123456789012345"
 $env:CLOUD_API_SECRET_CLOUDINARY="abcDEF..."
+# Set this to true only when your Redis provider requires TLS.
+$env:REDIS_SSL_ENABLED="false"
 ```
 
 #### Windows Command Prompt
